@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>bandcamp downloader</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18V5l12-2v13'/%3E%3Ccircle cx='6' cy='18' r='3'/%3E%3Ccircle cx='18' cy='16' r='3'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="/static/app.css">
+    <script defer src="/static/vendor/alpine.min.js"></script>
+</head>
+<body class="gradient-bg text-slate-100 min-h-screen antialiased">
+<div class="mx-auto max-w-4xl px-4 py-8" x-data="archiver()" x-init="init()">
+
+    <header class="mb-10 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <div class="rounded-lg bg-indigo-600 p-2 shadow-lg shadow-indigo-500/20" aria-hidden="true">
+                <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight">bandcamp downloader</h1>
+                <p class="text-sm text-slate-400">Archiving sound, one URL at a time.</p>
+            </div>
+        </div>
+
+        <span class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs font-medium text-slate-300">
+            <span class="h-2 w-2 rounded-full" :class="health.online ? 'bg-emerald-400' : 'bg-red-400'" aria-hidden="true"></span>
+            <span x-text="health.online ? 'Service online' : 'Service unreachable'">Checking…</span>
+        </span>
+    </header>
+
+    <!-- New download -->
+    <section class="card-blur mb-8 rounded-2xl p-6 shadow-2xl" aria-labelledby="new-download-heading">
+        <h2 id="new-download-heading" class="sr-only">New download</h2>
+        <form @submit.prevent="startDownload()" class="space-y-5">
+            <div>
+                <label for="url" class="mb-2 block text-sm font-medium text-slate-300">Bandcamp URL</label>
+                <div class="relative">
+                    <svg class="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    <input id="url" name="url" type="text" x-model.trim="form.url" required
+                           autocomplete="off" spellcheck="false" inputmode="url"
+                           placeholder="https://artist.bandcamp.com/album/…"
+                           class="field pl-12">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                    <label for="format" class="mb-2 block text-sm font-medium text-slate-300">Format</label>
+                    <select id="format" name="format" x-model="form.format" class="field cursor-pointer">
+                        {% for key, meta in formats.items() %}
+                        <option value="{{ key }}">{{ meta.label }}</option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-2 text-xs leading-relaxed text-slate-400" x-text="formats[form.format].hint"></p>
+                </div>
+
+                <div>
+                    <label for="folder" class="mb-2 block text-sm font-medium text-slate-300">Save to subfolder <span class="font-normal text-slate-400">(optional)</span></label>
+                    <div class="relative">
+                        <svg class="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+                        <input id="folder" name="folder" type="text" x-model.trim="form.folder"
+                               autocomplete="off" placeholder="e.g. Electronic" class="field pl-12">
+                    </div>
+                </div>
+            </div>
+
+            <div x-show="form.format !== 'original'" x-cloak
+                 class="flex gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-200">
+                <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
+                <p>Bandcamp free streams are about 128&nbsp;kbps MP3. Re-encoding to FLAC, WAV or 320&nbsp;kbps cannot restore detail — it only makes the file bigger.</p>
+            </div>
+
+            <div x-show="formError" x-cloak role="alert"
+                 class="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200" x-text="formError"></div>
+
+            <button type="submit" :disabled="loading || !form.url"
+                    class="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3.5 font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50">
+                <svg x-show="!loading" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+                <svg x-show="loading" x-cloak class="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"/><path d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" class="opacity-75"/></svg>
+                <span x-text="loading ? 'Starting…' : 'Start download'"></span>
+            </button>
+        </form>
+    </section>
+
+    <!-- Queue -->
+    <section class="mb-10" x-show="tasks.length > 0" x-cloak aria-labelledby="queue-heading">
+        <div class="mb-4 flex items-center justify-between">
+            <h2 id="queue-heading" class="flex items-center gap-2 text-lg font-semibold">
+                <svg class="h-5 w-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15V6"/><path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M12 12H3"/><path d="M16 6H3"/><path d="M12 18H3"/></svg>
+                Download queue
+            </h2>
+            <button type="button" @click="clearFinished()" x-show="hasFinished()"
+                    class="text-xs font-medium text-slate-400 underline-offset-2 hover:text-slate-200 hover:underline">
+                Clear finished
+            </button>
+        </div>
+
+        <ul class="space-y-3" role="list">
+            <template x-for="task in tasks" :key="task.id">
+                <li class="card-blur rounded-xl p-4">
+                    <div class="mb-3 flex items-start justify-between gap-4">
+                        <div class="flex min-w-0 items-center gap-3">
+                            <div class="rounded-lg bg-slate-800 p-2 text-indigo-400" aria-hidden="true">
+                                <svg class="h-5 w-5" :class="isBusy(task) ? 'animate-spin' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="truncate font-medium text-slate-100" x-text="task.title || 'Reading metadata…'"></p>
+                                <p class="truncate text-xs text-slate-400" x-text="subtitle(task)"></p>
+                            </div>
+                        </div>
+                        <span class="shrink-0 rounded px-2 py-1 text-[11px] font-bold uppercase tracking-wider" :class="statusClass(task.status)" x-text="task.status"></span>
+                    </div>
+
+                    <div class="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-800"
+                         role="progressbar" :aria-valuenow="Math.round(task.progress)" aria-valuemin="0" aria-valuemax="100"
+                         :aria-label="'Progress for ' + (task.title || 'download')">
+                        <div class="h-full bg-indigo-500 transition-all duration-500" :style="`width: ${task.progress}%`"></div>
+                    </div>
+
+                    <p x-show="task.error" x-cloak class="mt-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs leading-relaxed text-red-200" x-text="task.error"></p>
+
+                    <div class="mt-3 flex items-center gap-3 text-xs">
+                        <button type="button" x-show="isBusy(task)" @click="cancel(task)"
+                                class="font-medium text-slate-400 hover:text-red-300">Cancel</button>
+                        <button type="button" x-show="canRetry(task)" @click="retry(task)"
+                                class="font-medium text-indigo-300 hover:text-indigo-200">Retry</button>
+                        <button type="button" x-show="!isBusy(task)" @click="dismiss(task)"
+                                class="font-medium text-slate-400 hover:text-slate-200">Dismiss</button>
+                        <a x-show="task.status === 'completed'" :href="'#library'" @click="expandLibrary()"
+                           class="ml-auto font-medium text-emerald-300 hover:text-emerald-200">View in library</a>
+                    </div>
+                </li>
+            </template>
+        </ul>
+    </section>
+
+    <!-- Storage -->
+    <section class="mb-10" aria-labelledby="storage-heading">
+        <div class="card-blur rounded-2xl p-4 sm:p-5">
+            <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <h2 id="storage-heading" class="flex items-center gap-2 text-sm font-semibold text-slate-200">
+                    <svg class="h-4 w-4 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg>
+                    Storage
+                </h2>
+                <span class="text-xs text-slate-400"
+                      x-text="`${formatBytes(health.disk.used)} used of ${formatBytes(health.disk.total)}`"></span>
+            </div>
+
+            <div class="h-2 w-full overflow-hidden rounded-full bg-slate-800"
+                 role="progressbar" :aria-valuenow="health.disk.percent" aria-valuemin="0" aria-valuemax="100"
+                 aria-label="Disk usage">
+                <div class="h-full transition-all duration-500" :class="diskBarClass()" :style="`width: ${health.disk.percent}%`"></div>
+            </div>
+
+            <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <span class="text-slate-300" x-text="`${formatBytes(health.disk.free)} free`"></span>
+                <span class="text-slate-400" x-text="`${library.length} album${library.length === 1 ? '' : 's'} · ${formatBytes(libraryTotal())} of music`"></span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Labels -->
+    <section id="labels" class="mb-10" aria-labelledby="labels-heading">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 id="labels-heading" class="flex items-center gap-2 text-lg font-semibold">
+                <svg class="h-5 w-5 text-fuchsia-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                Labels
+            </h2>
+            <button type="button" @click="refreshAllLabels()" :disabled="labelsBusy"
+                    class="text-xs font-medium text-slate-400 underline-offset-2 hover:text-slate-200 hover:underline disabled:opacity-50">
+                <span x-text="labelsBusy ? 'Refreshing…' : 'Refresh all'"></span>
+            </button>
+        </div>
+
+        <form @submit.prevent="addLabel()" class="card-blur mb-4 rounded-2xl p-4">
+            <label for="label-url" class="mb-2 block text-sm font-medium text-slate-300">Watch a label or artist</label>
+            <div class="flex flex-col gap-2 sm:flex-row">
+                <input id="label-url" type="text" x-model.trim="labelForm.url" autocomplete="off" spellcheck="false"
+                       inputmode="url" placeholder="https://label.bandcamp.com" class="field flex-1">
+                <button type="submit" :disabled="labelForm.loading || !labelForm.url"
+                        class="rounded-xl bg-fuchsia-600 px-5 py-3 font-semibold text-white transition hover:bg-fuchsia-500 disabled:cursor-not-allowed disabled:opacity-50">
+                    <span x-text="labelForm.loading ? 'Adding…' : 'Add'"></span>
+                </button>
+            </div>
+            <p x-show="labelError" x-cloak role="alert"
+               class="mt-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-200" x-text="labelError"></p>
+        </form>
+
+        <p x-show="labels.length === 0 && !labelsBusy" x-cloak class="card-blur rounded-2xl p-6 text-center text-sm text-slate-400">
+            No labels watched yet. Paste a label or artist page above to browse its catalogue.
+        </p>
+
+        <div class="space-y-4">
+            <template x-for="label in labels" :key="label.slug">
+                <div class="card-blur rounded-2xl p-4">
+                    <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="flex items-center gap-2 font-semibold text-slate-100">
+                                <span class="truncate" x-text="label.name"></span>
+                                <span x-show="label.new_count > 0" x-cloak
+                                      class="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300"
+                                      x-text="`${label.new_count} new`"></span>
+                            </p>
+                            <p class="truncate text-xs text-slate-400">
+                                <a :href="label.url" target="_blank" rel="noopener noreferrer"
+                                   class="underline-offset-2 hover:text-slate-200 hover:underline" x-text="label.slug"></a>
+                                <span x-text="` · ${label.releases.length} releases · checked ${ageLabel(label.last_checked)}`"></span>
+                            </p>
+                        </div>
+
+                        <div class="flex shrink-0 items-center gap-2 text-xs">
+                            <div class="flex items-center rounded-lg border border-slate-800 p-0.5" role="group" aria-label="Release layout">
+                                <button type="button" @click="setLabelView(label.slug, 'grid')"
+                                        :aria-pressed="labelViewFor(label.slug) === 'grid' ? 'true' : 'false'"
+                                        title="Grid" aria-label="Grid view"
+                                        class="rounded-md p-1.5 transition"
+                                        :class="labelViewFor(label.slug) === 'grid' ? 'bg-slate-700 text-slate-100' : 'text-slate-500 hover:text-slate-300'">
+                                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                                </button>
+                                <button type="button" @click="setLabelView(label.slug, 'list')"
+                                        :aria-pressed="labelViewFor(label.slug) === 'list' ? 'true' : 'false'"
+                                        title="List" aria-label="List view"
+                                        class="rounded-md p-1.5 transition"
+                                        :class="labelViewFor(label.slug) === 'list' ? 'bg-slate-700 text-slate-100' : 'text-slate-500 hover:text-slate-300'">
+                                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
+                                </button>
+                            </div>
+                            <button type="button" x-show="label.new_count > 0" x-cloak @click="downloadNew(label)"
+                                    class="rounded-lg bg-emerald-500/15 px-2.5 py-1 font-semibold text-emerald-300 hover:bg-emerald-500/25">
+                                <span x-text="`Download ${label.new_count} new`"></span>
+                            </button>
+                            <button type="button" x-show="label.new_count > 0" x-cloak @click="markSeen(label)"
+                                    class="rounded-lg px-2 py-1 text-slate-400 hover:text-slate-200">Mark seen</button>
+                            <button type="button" @click="refreshLabel(label.slug)" :disabled="label.refreshing"
+                                    class="rounded-lg px-2 py-1 text-slate-400 hover:text-slate-200 disabled:opacity-50"
+                                    x-text="label.refreshing ? '…' : 'Refresh'"></button>
+                            <button type="button" @click="removeLabel(label)"
+                                    :aria-label="`Stop watching ${label.name}`" title="Stop watching"
+                                    class="rounded-lg p-1.5 text-slate-400 hover:bg-red-500/10 hover:text-red-300">
+                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <p x-show="label.error" x-cloak class="mb-3 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-200" x-text="label.error"></p>
+
+                    <!-- grid -->
+                    <div x-show="labelViewFor(label.slug) === 'grid'" x-cloak
+                         class="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+                        <template x-for="release in visibleReleases(label)" :key="release.id">
+                            <div class="group relative">
+                                <a :href="release.url" target="_blank" rel="noopener noreferrer"
+                                   class="relative block overflow-hidden rounded-lg border border-slate-800 bg-slate-900/60">
+                                    <template x-if="release.cover">
+                                        <img :src="release.cover" alt="" loading="lazy"
+                                             class="aspect-square w-full object-cover transition group-hover:opacity-75">
+                                    </template>
+                                    <template x-if="!release.cover">
+                                        <div class="flex aspect-square w-full items-center justify-center bg-slate-800/60 text-slate-500" aria-hidden="true">
+                                            <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                                        </div>
+                                    </template>
+                                    <div class="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/85 to-transparent px-2 pb-1.5 pt-7">
+                                        <p class="truncate text-[11px] font-medium leading-tight text-slate-100" :title="release.title" x-text="release.title"></p>
+                                        <p class="mt-0.5 truncate text-[10px] leading-tight text-slate-400" :title="release.artist" x-text="release.artist || release.type"></p>
+                                    </div>
+                                </a>
+
+                                <span x-show="release.new" x-cloak
+                                      class="absolute left-1.5 top-1.5 rounded bg-emerald-500 px-1.5 py-px text-[9px] font-bold uppercase tracking-wider text-emerald-950">New</span>
+
+                                <button type="button" @click="queueRelease(release)"
+                                        :aria-label="`Download ${release.title}`"
+                                        :title="queued[release.url] ? 'Queued' : `Download ${release.title}`"
+                                        class="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full shadow-lg transition"
+                                        :class="queued[release.url]
+                                            ? 'bg-emerald-500 text-emerald-950'
+                                            : 'bg-indigo-600/90 text-white hover:bg-indigo-500'">
+                                    <svg x-show="!queued[release.url]" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                                    <svg x-show="queued[release.url]" x-cloak class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- list -->
+                    <div x-show="labelViewFor(label.slug) === 'list'" x-cloak class="divide-y divide-slate-800/70">
+                        <template x-for="release in visibleReleases(label)" :key="release.id">
+                            <div class="flex items-center gap-2.5 py-1.5">
+                                <a :href="release.url" target="_blank" rel="noopener noreferrer"
+                                   class="flex min-w-0 flex-1 items-center gap-2.5">
+                                    <template x-if="release.cover">
+                                        <img :src="release.cover" alt="" loading="lazy" class="h-9 w-9 shrink-0 rounded object-cover">
+                                    </template>
+                                    <template x-if="!release.cover">
+                                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-slate-800/60 text-slate-500" aria-hidden="true">
+                                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                                        </div>
+                                    </template>
+                                    <div class="min-w-0">
+                                        <p class="truncate text-xs font-medium text-slate-100" :title="release.title" x-text="release.title"></p>
+                                        <p class="truncate text-[11px] text-slate-500" :title="release.artist" x-text="release.artist || release.type"></p>
+                                    </div>
+                                </a>
+
+                                <span x-show="release.new" x-cloak
+                                      class="shrink-0 rounded bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300">New</span>
+
+                                <button type="button" @click="queueRelease(release)"
+                                        :aria-label="`Download ${release.title}`"
+                                        :title="queued[release.url] ? 'Queued' : `Download ${release.title}`"
+                                        class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition"
+                                        :class="queued[release.url]
+                                            ? 'bg-emerald-500 text-emerald-950'
+                                            : 'bg-indigo-600/90 text-white hover:bg-indigo-500'">
+                                    <svg x-show="!queued[release.url]" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                                    <svg x-show="queued[release.url]" x-cloak class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div x-show="label.releases.length > 16" x-cloak class="mt-3 flex justify-center">
+                        <button type="button" x-show="visibleReleases(label).length < label.releases.length"
+                                @click="showMore(label)"
+                                class="rounded-lg border border-slate-800 px-3 py-1.5 text-xs font-medium text-slate-400 hover:border-slate-700 hover:text-slate-200">
+                            <span x-text="`Show more (${visibleReleases(label).length} of ${label.releases.length})`"></span>
+                        </button>
+                        <button type="button" x-show="visibleReleases(label).length >= label.releases.length"
+                                @click="collapseLabel(label)"
+                                class="rounded-lg border border-slate-800 px-3 py-1.5 text-xs font-medium text-slate-400 hover:border-slate-700 hover:text-slate-200">
+                            Show less
+                        </button>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </section>
+
+    <!-- Library -->
+    <section id="library" aria-labelledby="library-heading">
+        <div class="mb-4 flex items-center justify-between">
+            <h2 id="library-heading" class="flex items-center gap-2 text-lg font-semibold">
+                <svg class="h-5 w-5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+                Library
+            </h2>
+            <button type="button" @click="fetchLibrary()" class="text-xs font-medium text-slate-400 underline-offset-2 hover:text-slate-200 hover:underline">Refresh</button>
+        </div>
+
+        <p x-show="libraryError" x-cloak role="alert"
+           class="mb-3 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200" x-text="libraryError"></p>
+
+        <div class="card-blur rounded-2xl p-4 sm:p-6">
+            <p x-show="library.length === 0" x-cloak class="py-6 text-center text-sm text-slate-400">Nothing downloaded yet.</p>
+
+            <ul class="space-y-3" role="list">
+                <template x-for="album in library" :key="album.folder || '__root__'">
+                    <li class="rounded-xl border border-slate-800 bg-slate-900/60">
+                        <div class="flex items-center gap-2 p-3">
+                            <button type="button" @click="album.open = !album.open"
+                                    :aria-expanded="album.open ? 'true' : 'false'"
+                                    class="flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
+                                <div class="flex min-w-0 items-center gap-3">
+                                    <template x-if="album.cover">
+                                        <img :src="album.cover" alt="" class="h-11 w-11 shrink-0 rounded-lg object-cover" loading="lazy">
+                                    </template>
+                                    <template x-if="!album.cover">
+                                        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400" aria-hidden="true">
+                                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+                                        </div>
+                                    </template>
+                                    <div class="min-w-0">
+                                        <p class="truncate text-sm font-medium text-slate-100" x-text="album.label"></p>
+                                        <p class="text-xs text-slate-400" x-text="albumSubtitle(album)"></p>
+                                    </div>
+                                </div>
+                                <svg class="h-5 w-5 shrink-0 text-slate-400 transition-transform" :class="album.open ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                            </button>
+
+                            <template x-if="!isConfirming('album:' + album.path)">
+                                <button type="button" @click="deleteAlbum(album)"
+                                        :aria-label="`Delete ${album.label}`" title="Delete this album"
+                                        class="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-red-500/10 hover:text-red-300">
+                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                </button>
+                            </template>
+                            <template x-if="isConfirming('album:' + album.path)">
+                                <div class="flex shrink-0 items-center gap-1">
+                                    <button type="button" @click="deleteAlbum(album)"
+                                            class="rounded-lg bg-red-500/20 px-2 py-1 text-xs font-semibold text-red-200 hover:bg-red-500/30">Delete</button>
+                                    <button type="button" @click="cancelConfirm('album:' + album.path)"
+                                            class="rounded-lg px-2 py-1 text-xs text-slate-400 hover:text-slate-200">No</button>
+                                </div>
+                            </template>
+                        </div>
+
+                        <div x-show="album.open" x-cloak class="space-y-1 border-t border-slate-800 p-2">
+                            <template x-for="file in album.files" :key="file.url">
+                                <div class="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-xs hover:bg-slate-800/50">
+                                    <div class="flex min-w-0 items-center gap-2">
+                                        <svg class="h-3.5 w-3.5 shrink-0 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                                        <span class="truncate text-slate-200" x-text="file.name"></span>
+                                        <span class="shrink-0 text-slate-500" x-text="trackMeta(file)"></span>
+                                        <span class="shrink-0 text-slate-500" x-text="formatBytes(file.size)"></span>
+                                    </div>
+
+                                    <div class="flex shrink-0 items-center gap-1">
+                                        <a :href="file.url" download
+                                           class="flex items-center gap-1 rounded bg-indigo-500/10 px-2.5 py-1 font-medium text-indigo-300 hover:bg-indigo-500/20 hover:text-indigo-200">
+                                            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+                                            <span>Save</span>
+                                        </a>
+
+                                        <template x-if="!isConfirming('file:' + file.path)">
+                                            <button type="button" @click="deleteFile(file)"
+                                                    :aria-label="`Delete ${file.name}`" title="Delete this file"
+                                                    class="rounded p-1.5 text-slate-400 transition hover:bg-red-500/10 hover:text-red-300">
+                                                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                            </button>
+                                        </template>
+                                        <template x-if="isConfirming('file:' + file.path)">
+                                            <div class="flex items-center gap-1">
+                                                <button type="button" @click="deleteFile(file)"
+                                                        class="rounded bg-red-500/20 px-2 py-1 font-semibold text-red-200 hover:bg-red-500/30">Delete</button>
+                                                <button type="button" @click="cancelConfirm('file:' + file.path)"
+                                                        class="rounded px-1.5 py-1 text-slate-400 hover:text-slate-200">No</button>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </li>
+                </template>
+            </ul>
+        </div>
+    </section>
+
+    <footer class="mt-10 border-t border-slate-800 pt-6 text-center text-xs text-slate-500">
+        <span x-text="`Serving ${health.download_root || '…'} · ${health.max_concurrent || '?'} concurrent downloads`"></span>
+        <span x-show="!health.auth" x-cloak class="ml-1 text-amber-400">· no password set</span>
+    </footer>
+</div>
+
+<script>
+    const FORMATS = {{ formats | tojson }};
+
+    function archiver() {
+        return {
+            formats: FORMATS,
+            form: { url: '', format: 'original', folder: '' },
+            loading: false,
+            formError: '',
+            libraryError: '',
+            confirming: {},
+            labels: [],
+            labelForm: { url: '', loading: false },
+            labelError: '',
+            labelsBusy: false,
+            queued: {},
+            labelView: {},
+            labelLimit: {},
+            autoRefreshedLabels: false,
+            tasks: [],
+            library: [],
+            health: { online: false, download_root: '', max_concurrent: null, auth: false, disk: { total: 0, used: 0, free: 0, percent: 0 } },
+            timer: null,
+
+            init() {
+                this.refreshAll();
+                this.timer = setInterval(() => this.refreshAll(), 3000);
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        clearInterval(this.timer);
+                        this.timer = null;
+                    } else if (!this.timer) {
+                        this.refreshAll();
+                        this.timer = setInterval(() => this.refreshAll(), 3000);
+                    }
+                });
+            },
+
+            async refreshAll() {
+                await Promise.all([this.fetchHealth(), this.fetchTasks(), this.fetchLibrary(), this.fetchLabels()]);
+            },
+
+            async fetchHealth() {
+                try {
+                    const res = await fetch('/api/health', { cache: 'no-store' });
+                    if (!res.ok) throw new Error(res.status);
+                    this.health = { ...this.health, ...(await res.json()), online: true };
+                } catch (e) {
+                    this.health.online = false;
+                }
+            },
+
+            async fetchTasks() {
+                try {
+                    const res = await fetch('/api/tasks', { cache: 'no-store' });
+                    if (!res.ok) return;
+                    this.tasks = await res.json();
+                } catch (e) { /* transient */ }
+            },
+
+            async fetchLibrary() {
+                try {
+                    const res = await fetch('/api/library', { cache: 'no-store' });
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    this.library = data.map(item => {
+                        const key = item.folder || '__root__';
+                        const previous = this.library.find(old => (old.folder || '__root__') === key);
+                        return { ...item, open: previous ? previous.open : false };
+                    });
+                } catch (e) { /* transient */ }
+            },
+
+            isConfirming(key) {
+                return this.confirming[key] === true;
+            },
+
+            cancelConfirm(key) {
+                const next = { ...this.confirming };
+                delete next[key];
+                this.confirming = next;
+            },
+
+            armConfirm(key) {
+                this.confirming = { ...this.confirming, [key]: true };
+                setTimeout(() => this.cancelConfirm(key), 6000);
+            },
+
+            async deleteAlbum(album) {
+                const key = 'album:' + album.path;
+                if (!this.isConfirming(key)) {
+                    this.armConfirm(key);
+                    return;
+                }
+                await this.deletePath(album.path, key);
+            },
+
+            async deleteFile(file) {
+                const key = 'file:' + file.path;
+                if (!this.isConfirming(key)) {
+                    this.armConfirm(key);
+                    return;
+                }
+                await this.deletePath(file.path, key);
+            },
+
+            async deletePath(path, key) {
+                this.cancelConfirm(key);
+                this.libraryError = '';
+                try {
+                    const res = await fetch('/api/library/delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ path })
+                    });
+                    if (!res.ok) {
+                        const body = await res.json().catch(() => ({}));
+                        this.libraryError = typeof body.detail === 'string' ? body.detail : `Delete failed (${res.status})`;
+                        return;
+                    }
+                    await Promise.all([this.fetchLibrary(), this.fetchHealth()]);
+                } catch (e) {
+                    this.libraryError = 'Could not reach the server: ' + e.message;
+                }
+            },
+
+            libraryTotal() {
+                return this.library.reduce((sum, album) => sum + (album.total_size || 0), 0);
+            },
+
+            async fetchLabels() {
+                try {
+                    const res = await fetch('/api/labels', { cache: 'no-store' });
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    this.labels = data.map(item => {
+                        const previous = this.labels.find(old => old.slug === item.slug);
+                        return { ...item, refreshing: previous ? previous.refreshing : false };
+                    });
+                } catch (e) { /* transient */ }
+
+                if (!this.autoRefreshedLabels) {
+                    this.autoRefreshedLabels = true;
+                    const stale = this.labels.some(
+                        label => label.releases.length && (Date.now() / 1000 - label.last_checked) > 6 * 3600
+                    );
+                    if (stale) this.refreshAllLabels();
+                }
+            },
+
+            async addLabel() {
+                this.labelForm.loading = true;
+                this.labelError = '';
+                try {
+                    const res = await fetch('/api/labels', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: this.labelForm.url })
+                    });
+                    if (!res.ok) {
+                        const body = await res.json().catch(() => ({}));
+                        this.labelError = typeof body.detail === 'string'
+                            ? body.detail
+                            : Array.isArray(body.detail) ? body.detail.map(d => d.msg).join(', ')
+                            : `Could not add label (${res.status})`;
+                        return;
+                    }
+                    this.labelForm.url = '';
+                    await this.fetchLabels();
+                } catch (e) {
+                    this.labelError = 'Could not reach the server: ' + e.message;
+                } finally {
+                    this.labelForm.loading = false;
+                }
+            },
+
+            async refreshLabel(slug) {
+                this.labelsBusy = true;
+                this.labels = this.labels.map(l => (l.slug === slug ? { ...l, refreshing: true } : l));
+                try {
+                    const res = await fetch(`/api/labels/refresh?slug=${encodeURIComponent(slug)}`, { method: 'POST' });
+                    if (res.ok) await this.fetchLabels();
+                } finally {
+                    this.labelsBusy = false;
+                }
+            },
+
+            async refreshAllLabels() {
+                if (!this.labels.length) return;
+                this.labelsBusy = true;
+                this.labels = this.labels.map(l => ({ ...l, refreshing: true }));
+                try {
+                    const res = await fetch('/api/labels/refresh', { method: 'POST' });
+                    if (res.ok) await this.fetchLabels();
+                } finally {
+                    this.labelsBusy = false;
+                }
+            },
+
+            async removeLabel(label) {
+                await fetch(`/api/labels/${encodeURIComponent(label.slug)}`, { method: 'DELETE' });
+                await this.fetchLabels();
+            },
+
+            async markSeen(label) {
+                await fetch(`/api/labels/${encodeURIComponent(label.slug)}/seen`, { method: 'POST' });
+                await this.fetchLabels();
+            },
+
+            async queueRelease(release) {
+                if (release._queuing || this.queued[release.url]) return;
+                release._queuing = true;
+                this.labelError = '';
+                try {
+                    const res = await fetch('/api/download', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            url: release.url,
+                            format: this.form.format,
+                            folder: this.form.folder
+                        })
+                    });
+                    if (!res.ok) {
+                        const body = await res.json().catch(() => ({}));
+                        this.labelError = typeof body.detail === 'string'
+                            ? body.detail
+                            : `Could not queue ${release.title}`;
+                        return;
+                    }
+                    this.queued = { ...this.queued, [release.url]: true };
+                    await this.fetchTasks();
+                } catch (e) {
+                    this.labelError = 'Could not reach the server: ' + e.message;
+                } finally {
+                    release._queuing = false;
+                }
+            },
+
+            async downloadNew(label) {
+                const fresh = label.releases.filter(release => release.new);
+                for (const release of fresh) {
+                    await this.queueRelease(release);
+                }
+                await this.markSeen(label);
+            },
+
+            visibleReleases(label) {
+                const limit = this.labelLimit[label.slug] || 16;
+                return label.releases.slice(0, limit);
+            },
+
+            labelViewFor(slug) {
+                return this.labelView[slug] || 'grid';
+            },
+
+            setLabelView(slug, mode) {
+                this.labelView = { ...this.labelView, [slug]: mode };
+            },
+
+            showMore(label) {
+                const current = this.labelLimit[label.slug] || 16;
+                this.labelLimit = { ...this.labelLimit, [label.slug]: current + 16 };
+            },
+
+            collapseLabel(label) {
+                const next = { ...this.labelLimit };
+                delete next[label.slug];
+                this.labelLimit = next;
+            },
+
+            ageLabel(timestamp) {
+                if (!timestamp) return 'never';
+                const seconds = Math.max(0, Date.now() / 1000 - timestamp);
+                if (seconds < 90) return 'just now';
+                if (seconds < 3600) return `${Math.round(seconds / 60)} min ago`;
+                if (seconds < 86400) return `${Math.round(seconds / 3600)} h ago`;
+                return `${Math.round(seconds / 86400)} d ago`;
+            },
+
+            diskBarClass() {
+                const percent = this.health.disk.percent || 0;
+                if (percent >= 90) return 'bg-red-500';
+                if (percent >= 70) return 'bg-amber-500';
+                return 'bg-emerald-500';
+            },
+
+            async startDownload() {
+                this.loading = true;
+                this.formError = '';
+                try {
+                    const res = await fetch('/api/download', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.form)
+                    });
+                    if (!res.ok) {
+                        const body = await res.json().catch(() => ({}));
+                        const detail = body.detail;
+                        this.formError = typeof detail === 'string' ? detail
+                            : Array.isArray(detail) ? detail.map(d => d.msg).join(', ')
+                            : `Request failed (${res.status})`;
+                        return;
+                    }
+                    this.form.url = '';
+                    await this.fetchTasks();
+                } catch (e) {
+                    this.formError = 'Could not reach the server: ' + e.message;
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            async cancel(task) {
+                await fetch(`/api/tasks/${task.id}/cancel`, { method: 'POST' });
+                await this.fetchTasks();
+            },
+
+            async retry(task) {
+                await fetch(`/api/tasks/${task.id}/retry`, { method: 'POST' });
+                await this.fetchTasks();
+            },
+
+            async dismiss(task) {
+                await fetch(`/api/tasks/${task.id}`, { method: 'DELETE' });
+                await this.fetchTasks();
+            },
+
+            async clearFinished() {
+                const done = this.tasks.filter(t => !this.isBusy(t));
+                await Promise.all(done.map(t => fetch(`/api/tasks/${t.id}`, { method: 'DELETE' })));
+                await this.fetchTasks();
+            },
+
+            hasFinished() {
+                return this.tasks.some(t => !this.isBusy(t));
+            },
+
+            isBusy(task) {
+                return ['queued', 'downloading', 'processing'].includes(task.status);
+            },
+
+            canRetry(task) {
+                return ['failed', 'cancelled'].includes(task.status);
+            },
+
+            expandLibrary() {
+                this.$nextTick(() => document.getElementById('library')?.scrollIntoView({ behavior: 'smooth' }));
+            },
+
+            subtitle(task) {
+                const parts = [];
+                if (task.artist) parts.push(task.artist);
+                if (task.files_total > 1) parts.push(`track ${Math.min(task.files_done + 1, task.files_total)} of ${task.files_total}`);
+                if (task.status === 'downloading' && task.speed) parts.push(this.formatBytes(task.speed) + '/s');
+                if (task.status === 'downloading' && task.eta) parts.push(`${this.formatEta(task.eta)} left`);
+                if (!parts.length) parts.push(task.format === 'original' ? 'original stream' : task.format.toUpperCase());
+                return parts.join(' · ');
+            },
+
+            statusClass(status) {
+                return {
+                    'bg-slate-500/15 text-slate-300': status === 'queued',
+                    'bg-indigo-500/15 text-indigo-300': status === 'downloading',
+                    'bg-amber-500/15 text-amber-300': status === 'processing',
+                    'bg-emerald-500/15 text-emerald-300': status === 'completed',
+                    'bg-red-500/15 text-red-300': status === 'failed',
+                    'bg-slate-600/20 text-slate-400': status === 'cancelled'
+                }[status] || 'bg-slate-500/15 text-slate-300';
+            },
+
+            formatBytes(bytes) {
+                if (!bytes) return '0 B';
+                const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+                const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+                const value = bytes / Math.pow(1024, i);
+                return `${value >= 10 || i === 0 ? Math.round(value) : value.toFixed(1)} ${units[i]}`;
+            },
+
+            formatEta(seconds) {
+                if (seconds < 60) return `${Math.round(seconds)}s`;
+                if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+                return `${(seconds / 3600).toFixed(1)}h`;
+            },
+
+            trackMeta(file) {
+                const parts = [];
+                if (file.bitrate) parts.push(`${file.bitrate} kbps`);
+                if (file.duration) parts.push(this.formatDuration(file.duration));
+                return parts.join(' · ');
+            },
+
+            albumSubtitle(album) {
+                let text = `${album.files.length} track${album.files.length === 1 ? '' : 's'} · ${this.formatBytes(album.total_size)}`;
+                if (album.total_duration) text += ` · ${this.formatDuration(album.total_duration)}`;
+                return text;
+            },
+
+            formatDuration(seconds) {
+                if (!seconds) return '';
+                const total = Math.round(seconds);
+                const h = Math.floor(total / 3600);
+                const m = Math.floor((total % 3600) / 60);
+                const s = total % 60;
+                if (h) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                return `${m}:${String(s).padStart(2, '0')}`;
+            }
+        };
+    }
+</script>
+</body>
+</html>
