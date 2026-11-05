@@ -3,6 +3,8 @@
 A small self-hosted web app for archiving Bandcamp music. Built to run in a
 lightweight Proxmox LXC container, no external services required.
 
+![UI](docs/screenshot.png)
+
 ## What it does
 
 - Paste a Bandcamp album, track or artist URL and it downloads to disk.
@@ -130,4 +132,6 @@ npx tailwindcss@3.4.17 -c tailwind.config.js -i assets/input.css -o static/app.c
 Python 3, FastAPI, uvicorn, yt-dlp, ffmpeg, mutagen. Frontend is plain Alpine.js
 with a prebuilt Tailwind stylesheet.
 
+## License
 
+MIT. See [LICENSE](LICENSE).
