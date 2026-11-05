@@ -129,3 +129,6 @@ npx tailwindcss@3.4.17 -c tailwind.config.js -i assets/input.css -o static/app.c
 
 Python 3, FastAPI, uvicorn, yt-dlp, ffmpeg, mutagen. Frontend is plain Alpine.js
 with a prebuilt Tailwind stylesheet.
+
+
+<img width="973" height="2831" alt="image" src="https://github.com/user-attachments/assets/05fd7e70-e0d7-47ba-b84c-f439fd6cdd27" />
