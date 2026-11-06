@@ -19,7 +19,7 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import Literal
+from typing import Iterable, Literal
 from urllib.parse import urlparse
 from urllib.request import Request as UrlRequest
 from urllib.request import urlopen
@@ -269,7 +269,9 @@ def progress_hook(task_id: str):
 
 
 def build_ydl_opts(task_id: str, fmt: str, output_dir: Path) -> dict:
-    template = "%(artist,creator,uploader|Unknown Artist)s - %(album|Unknown Album)s/" "%(playlist_index&{} - |)s%(title)s.%(ext)s"
+    # album_artist first: on a compilation every track reports its own artist, so
+    # keying the folder on `artist` scatters one album across N folders.
+    template = "%(album_artist,artist,creator,uploader|Unknown Artist)s - %(album|Unknown Album)s/" "%(playlist_index&{} - |)s%(title)s.%(ext)s"
 
     opts: dict = {
         "format": "bestaudio/best",
@@ -304,23 +306,41 @@ def build_ydl_opts(task_id: str, fmt: str, output_dir: Path) -> dict:
     return opts
 
 
-def tidy_track_names(output_dir: Path, artist: str | None) -> None:
+def tidy_track_names(output_dir: Path, artists: Iterable[str] | None) -> None:
     """Bandcamp bakes the artist into the track title, which duplicates it in the filename.
 
-    Renames "3 - Artist - Song.mp3" to "3 - Song.mp3". Best effort, never raises.
+    Renames "3 - Artist - Song.mp3" to "3 - Song.mp3". Compilations repeat the echo
+    (and each track carries a different artist), so strip every known artist name,
+    repeatedly. Best effort, never raises.
     """
-    if not artist:
+    names = sorted({a.strip() for a in (artists or ()) if a and a.strip()}, key=len, reverse=True)
+    if not names:
         return
 
-    pattern = re.compile(rf"^(?P<index>\d{{1,3}} - )?{re.escape(artist)} - (?P<rest>.+)$")
+    index_pattern = re.compile(r"^(?P<index>\d{1,3} - )?(?P<rest>.+)$")
     candidates = list(output_dir.glob("*")) + list(output_dir.glob("*/*"))
     for path in candidates:
         if not path.is_file() or path.suffix.lower() not in AUDIO_EXTS | ART_EXTS:
             continue
-        match = pattern.match(path.stem)
-        if not match or not match.group("rest").strip():
+        match = index_pattern.match(path.stem)
+        if not match:
             continue
-        target = path.with_name(f"{match.group('index') or ''}{match.group('rest').strip()}{path.suffix}")
+        index = match.group("index") or ""
+        rest = match.group("rest")
+        stripped = False
+        while True:
+            for name in names:
+                prefix = f"{name} - "
+                if rest.startswith(prefix):
+                    rest = rest[len(prefix):]
+                    stripped = True
+                    break
+            else:
+                break
+        rest = rest.strip()
+        if not stripped or not rest:
+            continue
+        target = path.with_name(f"{index}{rest}{path.suffix}")
         if target.exists():
             continue
         try:
@@ -332,6 +352,7 @@ def tidy_track_names(output_dir: Path, artist: str | None) -> None:
 def run_download(task_id: str, url: str, fmt: str, folder: str) -> None:
     output_dir: Path | None = None
     artist: str | None = None
+    artists: set[str] = set()
 
     try:
         output_dir = resolve_folder(folder)
@@ -347,14 +368,24 @@ def run_download(task_id: str, url: str, fmt: str, folder: str) -> None:
         if entries:
             entries = [e for e in entries if e]
             title = info.get("title") or (entries[0].get("album") if entries else None)
-            artist = info.get("artist") or info.get("creator") or info.get("uploader")
+            artist = info.get("album_artist") or info.get("artist") or info.get("creator") or info.get("uploader")
             if not artist and entries:
-                artist = entries[0].get("artist") or entries[0].get("creator")
+                artist = entries[0].get("album_artist") or entries[0].get("artist") or entries[0].get("creator")
+            for entry in entries:
+                artists.update(
+                    entry.get(key)
+                    for key in ("album_artist", "artist", "creator", "uploader")
+                    if entry.get(key)
+                )
             count = len(entries)
         else:
             title = info.get("title")
-            artist = info.get("artist") or info.get("creator") or info.get("uploader")
+            artist = info.get("album_artist") or info.get("artist") or info.get("creator") or info.get("uploader")
             count = 1
+
+        artists.update(
+            info.get(key) for key in ("album_artist", "artist", "creator", "uploader") if info.get(key)
+        )
 
         with LOCK:
             task = TASKS.get(task_id)
@@ -386,7 +417,10 @@ def run_download(task_id: str, url: str, fmt: str, folder: str) -> None:
                 task["finished_at"] = time.time()
     finally:
         if output_dir is not None:
-            tidy_track_names(output_dir, artist or TASKS.get(task_id, {}).get("artist"))
+            fallback = TASKS.get(task_id, {}).get("artist")
+            if fallback:
+                artists.add(fallback)
+            tidy_track_names(output_dir, artists)
 
 
 SEMAPHORE = asyncio.Semaphore(MAX_CONCURRENT)
