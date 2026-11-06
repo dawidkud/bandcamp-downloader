@@ -5,14 +5,20 @@ lightweight Proxmox LXC container, no external services required.
 
 Current version: **1.0** — see [CHANGELOG.md](CHANGELOG.md).
 
-![UI](docs/screenshot.png)
+![The app: new download form, storage, label watch and library](docs/screenshot.png)
+
+*The current build: new download form, storage, two watched labels and the
+library below.*
 
 ## What it does
 
 - Paste a Bandcamp album, track or artist URL and it downloads to disk.
+- Downloads queue two at a time, with progress, speed, ETA, cancel and retry.
 - Tags are written from Bandcamp metadata and cover art is embedded.
-- Tracks land as `Artist - Album/1 - Track.mp3`.
-- A library browser lists everything already downloaded, with file sizes.
+- Tracks land as `Artist - Album/1 - Track.mp3`. Compilations use the album
+  artist, so one release stays in one folder.
+- A library browser lists everything already downloaded, with artwork, track
+  count, runtime and size.
 - Download an album from the browser as a single zip, instead of saving tracks
   one at a time.
 - Albums and individual tracks can be deleted from the browser (two clicks:
@@ -21,6 +27,19 @@ Current version: **1.0** — see [CHANGELOG.md](CHANGELOG.md).
 - A label watch lists a label's or artist's catalogue as a compact cover grid
   (or a list with thumbnails), with a plus button to queue any release and a
   "new" badge on releases that appeared since the last check.
+
+## Library
+
+Everything under `DOWNLOAD_ROOT` is listed newest first. Expanding an album shows
+each track with bitrate, duration and size, and a **Save** link for the track on
+its own.
+
+- **Download** on an album row packs the whole folder — tracks and cover — into
+  one zip, named after the album. One request, one file.
+- **Delete** takes two clicks: the first arms the button, the second confirms.
+  Deleting an album removes the folder and everything in it.
+- Cover art is embedded in the audio by Bandcamp, so the first scan extracts it
+  once into `cover.jpg` in the album folder and the browser reuses it.
 
 ## Label watch
 
