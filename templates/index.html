@@ -1090,8 +1090,10 @@
             },
 
             startQueue({ source, url, album, artist, cover, tracks, start = 0 }) {
-                // Closed while a preview was resolving -> stay closed.
-                if (!this.player.open) return;
+                // A preview that resolved after the user closed the player must
+                // not reopen it. A library queue starts from a closed player on
+                // purpose, so only previews are held to the open-state check.
+                if (source === 'preview' && !this.player.open) return;
                 this.player = {
                     open: true,
                     source,
