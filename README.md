@@ -11,6 +11,8 @@ lightweight Proxmox LXC container, no external services required.
 - Tags are written from Bandcamp metadata and cover art is embedded.
 - Tracks land as `Artist - Album/1 - Track.mp3`.
 - A library browser lists everything already downloaded, with file sizes.
+- Download an album from the browser as a single zip, instead of saving tracks
+  one at a time.
 - Albums and individual tracks can be deleted from the browser (two clicks:
   arm, then confirm).
 - A storage panel shows disk used, disk free and the size of your music.

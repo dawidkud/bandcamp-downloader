@@ -15,9 +15,11 @@ import re
 import secrets
 import shutil
 import socket
+import tempfile
 import threading
 import time
 import uuid
+import zipfile
 from pathlib import Path
 from typing import Iterable, Literal
 from urllib.parse import urlparse
@@ -30,10 +32,11 @@ from mutagen.mp3 import MP3
 from mutagen.mp4 import MP4
 from mutagen.wave import WAVE
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field, field_validator
+from starlette.background import BackgroundTask
 from starlette.middleware.base import BaseHTTPMiddleware
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -747,6 +750,47 @@ def scan_library() -> list[dict]:
 @app.get("/api/library")
 async def get_library():
     return await asyncio.to_thread(scan_library)
+
+
+def zip_library_folder(folder: Path) -> Path:
+    """Pack an album folder into a throwaway archive, folder name included.
+
+    Stored, not deflated: the payload is already-compressed audio, so compressing
+    would just burn CPU for nothing.
+    """
+    handle, name = tempfile.mkstemp(prefix="bandcamp-dl-", suffix=".zip")
+    os.close(handle)
+    archive = Path(name)
+    try:
+        with zipfile.ZipFile(archive, "w", zipfile.ZIP_STORED, allowZip64=True) as bundle:
+            for child in sorted(folder.rglob("*")):
+                if child.is_file():
+                    bundle.write(child, child.relative_to(folder.parent))
+    except Exception:
+        archive.unlink(missing_ok=True)
+        raise
+    return archive
+
+
+@app.get("/api/library/download")
+async def download_library_folder(path: str = ""):
+    """One request, whole album: the per-track "Save" links are tedious."""
+    if not path.strip("/."):
+        raise HTTPException(status_code=400, detail="Pick an album folder to download")
+
+    target = resolve_download_path(path)
+    if not target.exists():
+        raise HTTPException(status_code=404, detail="No such folder")
+    if not target.is_dir():
+        raise HTTPException(status_code=400, detail="Pick an album folder, not a single file")
+
+    archive = await asyncio.to_thread(zip_library_folder, target)
+    return FileResponse(
+        archive,
+        media_type="application/zip",
+        filename=f"{target.name}.zip",
+        background=BackgroundTask(archive.unlink, missing_ok=True),
+    )
 
 
 class DeleteRequest(BaseModel):
