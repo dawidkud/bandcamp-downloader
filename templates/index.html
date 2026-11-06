@@ -447,7 +447,7 @@
     </section>
 
     <footer class="mt-10 border-t border-slate-800 pt-6 text-center text-xs text-slate-500">
-        <span x-text="`Serving ${health.download_root || '…'} · ${health.max_concurrent || '?'} concurrent downloads`"></span>
+        <span x-text="`v${health.version || '?'} · Serving ${health.download_root || '…'} · ${health.max_concurrent || '?'} concurrent downloads`"></span>
         <span x-show="!health.auth" x-cloak class="ml-1 text-amber-400">· no password set</span>
     </footer>
 </div>
@@ -473,7 +473,7 @@
             autoRefreshedLabels: false,
             tasks: [],
             library: [],
-            health: { online: false, download_root: '', max_concurrent: null, auth: false, disk: { total: 0, used: 0, free: 0, percent: 0 } },
+            health: { online: false, version: '', download_root: '', max_concurrent: null, auth: false, disk: { total: 0, used: 0, free: 0, percent: 0 } },
             timer: null,
 
             init() {

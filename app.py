@@ -41,6 +41,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 BASE_DIR = Path(__file__).resolve().parent
 
+VERSION = "1.0"
+
 DOWNLOAD_ROOT = Path(os.environ.get("DOWNLOAD_ROOT") or BASE_DIR / "downloads").resolve()
 DOWNLOAD_ROOT.mkdir(parents=True, exist_ok=True)
 
@@ -508,6 +510,7 @@ async def health():
     usage = await asyncio.to_thread(shutil.disk_usage, DOWNLOAD_ROOT)
     return {
         "status": "ok",
+        "version": VERSION,
         "download_root": str(DOWNLOAD_ROOT),
         "max_concurrent": MAX_CONCURRENT,
         "active": sum(1 for t in TASKS.values() if t["status"] in ("queued", "downloading", "processing")),

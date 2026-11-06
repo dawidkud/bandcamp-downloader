@@ -3,6 +3,8 @@
 A small self-hosted web app for archiving Bandcamp music. Built to run in a
 lightweight Proxmox LXC container, no external services required.
 
+Current version: **1.0** — see [CHANGELOG.md](CHANGELOG.md).
+
 ![UI](docs/screenshot.png)
 
 ## What it does
