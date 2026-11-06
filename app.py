@@ -41,7 +41,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 BASE_DIR = Path(__file__).resolve().parent
 
-VERSION = "1.0"
+VERSION = "1.1"
 
 DOWNLOAD_ROOT = Path(os.environ.get("DOWNLOAD_ROOT") or BASE_DIR / "downloads").resolve()
 DOWNLOAD_ROOT.mkdir(parents=True, exist_ok=True)
@@ -839,6 +839,139 @@ async def delete_library_item(req: DeleteRequest):
         raise HTTPException(status_code=500, detail=f"Could not delete: {exc}") from exc
 
     return {"ok": True, "removed": removed, "path": req.path}
+
+
+# --------------------------------------------------------------------------- #
+# preview player
+# --------------------------------------------------------------------------- #
+#
+# Bandcamp streams previews from its own CDN, so hand the browser the stream
+# URLs and let it fetch the audio itself: nothing is proxied through this app and
+# nothing is written to disk. yt-dlp already reads these pages, so ask it for the
+# track list with download=False. The URLs are signed and expire (a `ts` value,
+# 24 h out), which sets how long a resolution may be cached.
+
+PREVIEW_CACHE: dict[str, dict] = {}
+PREVIEW_LOCK = threading.Lock()
+PREVIEW_MAX_ENTRIES = 48
+PREVIEW_MIN_TTL = 60.0
+PREVIEW_MAX_TTL = 6 * 3600.0
+
+
+def stream_expiry(stream: str) -> float | None:
+    match = re.search(r"[?&]ts=(\d+)", stream or "")
+    return float(match.group(1)) if match else None
+
+
+def pick_stream(entry: dict) -> str | None:
+    """Lowest-common-denominator audio: the same 128 kbps MP3 a download would get."""
+    formats = [f for f in entry.get("formats") or [] if f.get("url")]
+    for wanted in ("mp3-128", "mp3"):
+        for fmt in formats:
+            if fmt.get("format_id") == wanted:
+                return fmt["url"]
+    audio_only = [f for f in formats if (f.get("vcodec") or "none") == "none"]
+    candidates = audio_only or formats
+    return candidates[0]["url"] if candidates else None
+
+
+def resolve_preview(url: str) -> dict:
+    opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "skip_download": True,
+        "noplaylist": False,
+        "socket_timeout": 30,
+    }
+    with yt_dlp.YoutubeDL(opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+
+    entries = [entry for entry in (info.get("entries") or [info]) if entry]
+    first = entries[0] if entries else {}
+    # An album page reports almost nothing at the playlist level (no artist, no
+    # art); those live on the entries, so fall back to the first track.
+    artist = (
+        info.get("album_artist")
+        or info.get("artist")
+        or info.get("creator")
+        or info.get("uploader")
+        or first.get("album_artist")
+        or first.get("artist")
+        or first.get("creator")
+        or first.get("uploader")
+    )
+    cover = info.get("thumbnail") or first.get("thumbnail")
+
+    # Every stream carries its own expiry; the release can be cached only until
+    # the first of them goes stale.
+    deadline = time.time() + PREVIEW_MAX_TTL
+    tracks = []
+    for index, entry in enumerate(entries, start=1):
+        stream = pick_stream(entry)
+        if not stream:
+            continue
+        expires = stream_expiry(stream)
+        if expires:
+            deadline = min(deadline, expires - PREVIEW_MIN_TTL)
+        tracks.append(
+            {
+                "index": index,
+                "title": clean_title(entry.get("title"), entry.get("artist") or artist) or f"Track {index}",
+                "duration": entry.get("duration"),
+                "stream": stream,
+            }
+        )
+        cover = cover or entry.get("thumbnail")
+
+    return {
+        "url": url,
+        "title": info.get("album") or info.get("title") or url,
+        "artist": artist or "",
+        "cover": cover,
+        "tracks": tracks,
+        "expires": max(deadline, time.time() + PREVIEW_MIN_TTL),
+    }
+
+
+def prune_preview_cache(now: float | None = None) -> None:
+    now = now or time.time()
+    with PREVIEW_LOCK:
+        for key in [k for k, cached in PREVIEW_CACHE.items() if cached["data"]["expires"] <= now]:
+            PREVIEW_CACHE.pop(key, None)
+        while len(PREVIEW_CACHE) > PREVIEW_MAX_ENTRIES:
+            oldest = min(PREVIEW_CACHE, key=lambda k: PREVIEW_CACHE[k]["added"])
+            PREVIEW_CACHE.pop(oldest, None)
+
+
+@app.get("/api/preview")
+async def preview_release(url: str = ""):
+    """Track list and playable stream URLs for a release, for the web player."""
+    try:
+        target = validate_bandcamp_url(url)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    key = target.split("#", 1)[0].split("?", 1)[0].rstrip("/")
+    now = time.time()
+    prune_preview_cache(now)
+
+    with PREVIEW_LOCK:
+        cached = PREVIEW_CACHE.get(key)
+        if cached and cached["data"]["expires"] > now:
+            return cached["data"]
+
+    try:
+        data = await asyncio.to_thread(resolve_preview, key)
+    except Exception as exc:  # noqa: BLE001 - yt-dlp raises its own zoo of errors
+        detail = str(exc).strip().replace("\n", " ")[:300] or exc.__class__.__name__
+        raise HTTPException(status_code=502, detail=f"Bandcamp gave no playable stream: {detail}") from exc
+
+    if not data["tracks"]:
+        raise HTTPException(status_code=404, detail="No playable tracks on that page")
+
+    with PREVIEW_LOCK:
+        PREVIEW_CACHE[key] = {"added": now, "data": data}
+    return data
 
 
 # --------------------------------------------------------------------------- #

@@ -22,9 +22,22 @@
   .field {
     @apply w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-slate-100 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/60;
   }
+
+  .player-btn {
+    @apply flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-slate-100;
+  }
+
+  .player-seek {
+    @apply cursor-pointer rounded-full bg-slate-700 accent-indigo-500;
+  }
 }
 
 @layer utilities {
+  /* Alpine reads this before it boots; without it the player bar flashes on load. */
+  [x-cloak] {
+    display: none !important;
+  }
+
   .gradient-bg {
     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
     background-attachment: fixed;

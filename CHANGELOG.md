@@ -3,6 +3,21 @@
 All notable changes to this project are recorded here. The version is also
 served by `GET /api/health` and shown in the footer of the UI.
 
+## 1.1 — 2026-11-06
+
+### Added
+
+- Web player. Every release in the label watch (and every album in the library)
+  gets a play button that streams a preview in the browser: fixed bottom bar with
+  cover, track title, prev/next, seek bar, play/pause and a track list for albums.
+
+### Fixed
+
+- Closing the player mid-resolve no longer reopens it when the fetch lands.
+- Space / arrow keys no longer double-fire when a control inside the player has
+  focus.
+- Media-session seek now moves the player's position, not just the element.
+
 ## 1.0 — 2026-11-06
 
 First tagged release: a self-hosted Bandcamp archiver with a queue, a library

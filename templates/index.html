@@ -9,7 +9,7 @@
     <script defer src="/static/vendor/alpine.min.js"></script>
 </head>
 <body class="gradient-bg text-slate-100 min-h-screen antialiased">
-<div class="mx-auto max-w-4xl px-4 py-8" x-data="archiver()" x-init="init()">
+<div class="mx-auto max-w-4xl px-4 py-8" :class="player.open ? 'pb-48' : ''" x-data="archiver()" x-init="init()">
 
     <header class="mb-10 flex flex-wrap items-center justify-between gap-4">
         <div class="flex items-center gap-3">
@@ -269,6 +269,13 @@
                                 <span x-show="release.new" x-cloak
                                       class="absolute left-1.5 top-1.5 rounded bg-emerald-500 px-1.5 py-px text-[9px] font-bold uppercase tracking-wider text-emerald-950">New</span>
 
+                                <button type="button" @click="playRelease(release)"
+                                        :aria-label="`Preview ${release.title}`"
+                                        :title="`Preview ${release.title}`"
+                                        class="absolute right-1.5 top-9 flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600/90 text-white shadow-lg transition hover:bg-indigo-500">
+                                    <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                                </button>
+
                                 <button type="button" @click="queueRelease(release)"
                                         :aria-label="`Download ${release.title}`"
                                         :title="queued[release.url] ? 'Queued' : `Download ${release.title}`"
@@ -305,6 +312,13 @@
 
                                 <span x-show="release.new" x-cloak
                                       class="shrink-0 rounded bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300">New</span>
+
+                                <button type="button" @click="playRelease(release)"
+                                        :aria-label="`Preview ${release.title}`"
+                                        :title="`Preview ${release.title}`"
+                                        class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-800 text-slate-300 transition hover:bg-indigo-600 hover:text-white">
+                                    <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                                </button>
 
                                 <button type="button" @click="queueRelease(release)"
                                         :aria-label="`Download ${release.title}`"
@@ -377,6 +391,13 @@
                                 <svg class="h-5 w-5 shrink-0 text-slate-400 transition-transform" :class="album.open ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                             </button>
 
+                            <button type="button" @click="playLibraryAlbum(album)"
+                                    x-show="album.files.length" x-cloak
+                                    :aria-label="`Play ${album.label}`" title="Play this album"
+                                    class="shrink-0 rounded-lg bg-emerald-500/10 p-2 text-emerald-300 transition hover:bg-emerald-500/20 hover:text-emerald-200">
+                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                            </button>
+
                             <template x-if="!isConfirming('album:' + album.path)">
                                 <a :href="'/api/library/download?path=' + encodeURIComponent(album.path)"
                                    x-show="album.path && album.files.length" x-cloak
@@ -415,6 +436,12 @@
                                     </div>
 
                                     <div class="flex shrink-0 items-center gap-1">
+                                        <button type="button" @click="playLibraryAlbum(album, file)"
+                                                :aria-label="`Play ${file.name}`" title="Play from here"
+                                                class="rounded p-1 text-emerald-300 transition hover:bg-emerald-500/10 hover:text-emerald-200">
+                                            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                                        </button>
+
                                         <a :href="file.url" download
                                            class="flex items-center gap-1 rounded bg-indigo-500/10 px-2.5 py-1 font-medium text-indigo-300 hover:bg-indigo-500/20 hover:text-indigo-200">
                                             <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
@@ -450,6 +477,94 @@
         <span x-text="`v${health.version || '?'} · Serving ${health.download_root || '…'} · ${health.max_concurrent || '?'} concurrent downloads`"></span>
         <span x-show="!health.auth" x-cloak class="ml-1 text-amber-400">· no password set</span>
     </footer>
+
+    <!-- Player -->
+    <div x-show="player.open" x-cloak
+         class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-700 bg-slate-950/95 shadow-2xl backdrop-blur"
+         role="region" aria-label="Player">
+        <div class="mx-auto max-w-4xl px-3 py-3">
+            <div x-show="player.listOpen" x-cloak
+                 class="mb-3 max-h-56 overflow-y-auto rounded-xl border border-slate-800 bg-slate-900/60">
+                <template x-for="(track, position) in player.tracks" :key="position">
+                    <button type="button" @click="playTrackAt(position)"
+                            class="flex w-full items-center gap-2 border-b border-slate-800/60 px-3 py-2 text-left text-xs last:border-0"
+                            :class="position === player.index ? 'bg-emerald-500/10 text-emerald-300' : 'text-slate-300 hover:bg-slate-800/50'">
+                        <span class="w-4 shrink-0 text-[10px] tabular-nums text-slate-500" x-text="position + 1"></span>
+                        <span class="min-w-0 flex-1 truncate" x-text="track.title"></span>
+                        <span class="shrink-0 text-[10px] tabular-nums text-slate-500" x-text="formatDuration(track.duration)"></span>
+                    </button>
+                </template>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <template x-if="player.cover">
+                    <img :src="player.cover" alt="" class="h-11 w-11 shrink-0 rounded-lg object-cover">
+                </template>
+                <template x-if="!player.cover">
+                    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400" aria-hidden="true">
+                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                    </div>
+                </template>
+
+                <div class="min-w-0 flex-1">
+                    <p class="truncate text-sm font-medium text-slate-100" :title="playerTitle()" x-text="playerTitle()"></p>
+                    <p class="truncate text-xs"
+                       :class="player.error ? 'text-red-300' : 'text-slate-400'"
+                       x-text="player.error || playerSubtitle() || (player.loading ? 'Resolving preview…' : '')"></p>
+                </div>
+
+                <div class="flex shrink-0 items-center gap-1">
+                    <button type="button" x-show="player.tracks.length > 1" @click="prevTrack()"
+                            aria-label="Previous track" title="Previous track" class="player-btn">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h2v14H7zM20 5v14l-11-7z"/></svg>
+                    </button>
+
+                    <button type="button" x-show="!player.blocked" @click="togglePlay()"
+                            :aria-label="player.playing ? 'Pause' : 'Play'" :title="player.playing ? 'Pause' : 'Play'"
+                            class="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-600 text-white transition hover:bg-indigo-500">
+                        <svg x-show="!player.playing" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                        <svg x-show="player.playing" x-cloak class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h3v14H7zM14 5h3v14h-3z"/></svg>
+                    </button>
+                    <button type="button" x-show="player.blocked" x-cloak @click="tryPlay()"
+                            class="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-500">Tap to play</button>
+
+                    <button type="button" x-show="player.tracks.length > 1" @click="nextTrack()"
+                            aria-label="Next track" title="Next track" class="player-btn">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15 5h2v14h-2zM4 5l11 7-11 7z"/></svg>
+                    </button>
+
+                    <button type="button" x-show="player.tracks.length > 1" @click="player.listOpen = !player.listOpen"
+                            :aria-expanded="player.listOpen ? 'true' : 'false'"
+                            aria-label="Track list" title="Track list" class="player-btn">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
+                    </button>
+
+                    <button type="button" x-show="player.source === 'preview'" @click="queueRelease({ url: player.url, title: player.album })"
+                            aria-label="Download this release" title="Download this release"
+                            class="player-btn" :class="queued[player.url] ? 'text-emerald-300' : ''">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+                    </button>
+
+                    <button type="button" @click="closePlayer()" aria-label="Close player" title="Close player" class="player-btn">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-2 flex items-center gap-2">
+                <span class="w-10 shrink-0 text-right text-[10px] tabular-nums text-slate-500" x-text="formatDuration(player.current)"></span>
+                <input type="range" min="0" step="1" :max="player.duration || 0" :value="player.current"
+                       @input="seekTo($event)" aria-label="Seek" :disabled="!player.duration"
+                       class="player-seek h-1.5 flex-1">
+                <span class="w-10 shrink-0 text-[10px] tabular-nums text-slate-500" x-text="formatDuration(player.duration)"></span>
+            </div>
+        </div>
+    </div>
+
+    <audio x-ref="audio" preload="metadata" playsinline
+           @timeupdate="onTimeUpdate()" @loadedmetadata="onLoadedMeta()" @durationchange="onLoadedMeta()"
+           @play="onPlay()" @pause="player.playing = false"
+           @ended="nextTrack()" @error="onAudioError()"></audio>
 </div>
 
 <script>
@@ -475,6 +590,23 @@
             library: [],
             health: { online: false, version: '', download_root: '', max_concurrent: null, auth: false, disk: { total: 0, used: 0, free: 0, percent: 0 } },
             timer: null,
+            player: {
+                open: false,
+                source: '',
+                url: '',
+                album: '',
+                artist: '',
+                cover: '',
+                tracks: [],
+                index: -1,
+                playing: false,
+                loading: false,
+                blocked: false,
+                error: '',
+                current: 0,
+                duration: 0,
+                listOpen: false
+            },
 
             init() {
                 this.refreshAll();
@@ -488,6 +620,33 @@
                         this.timer = setInterval(() => this.refreshAll(), 3000);
                     }
                 });
+                document.addEventListener('keydown', event => this.onKeydown(event));
+            },
+
+            onKeydown(event) {
+                if (!this.player.open) return;
+                if (event.key === 'Escape') {
+                    this.closePlayer();
+                    return;
+                }
+                const target = event.target || {};
+                const tag = (target.tagName || '').toLowerCase();
+                if (tag === 'input' || tag === 'textarea' || tag === 'select' || target.isContentEditable) return;
+                if (tag === 'button' || tag === 'a') return; // let the native activation through
+                if (event.key === ' ') {
+                    event.preventDefault();
+                    this.togglePlay();
+                } else if (event.key === 'ArrowRight') {
+                    this.nudge(10);
+                } else if (event.key === 'ArrowLeft') {
+                    this.nudge(-10);
+                }
+            },
+
+            nudge(seconds) {
+                const el = this.audio();
+                if (!el.src || !Number.isFinite(el.duration)) return;
+                el.currentTime = Math.min(Math.max(0, el.currentTime + seconds), el.duration);
             },
 
             async refreshAll() {
@@ -848,6 +1007,266 @@
                 let text = `${album.files.length} track${album.files.length === 1 ? '' : 's'} · ${this.formatBytes(album.total_size)}`;
                 if (album.total_duration) text += ` · ${this.formatDuration(album.total_duration)}`;
                 return text;
+            },
+
+            /* ---- player ---- */
+
+            audio() {
+                return this.$refs.audio;
+            },
+
+            playLibraryAlbum(album, fromFile = null) {
+                const files = album.files || [];
+                if (!files.length) return;
+                const tracks = files.map((file, position) => ({
+                    index: position + 1,
+                    title: this.trackTitle(file.name),
+                    duration: file.duration || null,
+                    stream: file.url
+                }));
+                const start = fromFile
+                    ? Math.max(0, files.findIndex(file => file.path === fromFile.path))
+                    : 0;
+                this.startQueue({
+                    source: 'library',
+                    url: '',
+                    album: album.label,
+                    artist: '',
+                    cover: album.cover || '',
+                    tracks,
+                    start
+                });
+            },
+
+            async playRelease(release) {
+                // Same release already loaded: treat the button as play/pause.
+                if (this.player.source === 'preview' && this.player.url === release.url && this.player.tracks.length) {
+                    this.player.open = true;
+                    this.togglePlay();
+                    return;
+                }
+
+                this.audio().pause();
+                this.player = {
+                    ...this.player,
+                    open: true,
+                    source: 'preview',
+                    url: release.url,
+                    album: release.title,
+                    artist: release.artist || '',
+                    cover: release.cover || '',
+                    tracks: [],
+                    index: -1,
+                    playing: false,
+                    loading: true,
+                    blocked: false,
+                    error: '',
+                    current: 0,
+                    duration: 0
+                };
+
+                try {
+                    const res = await fetch('/api/preview?url=' + encodeURIComponent(release.url), { cache: 'no-store' });
+                    const body = await res.json().catch(() => ({}));
+                    if (!res.ok) {
+                        throw new Error(typeof body.detail === 'string' ? body.detail : `Could not load a preview (${res.status})`);
+                    }
+                    if (!body.tracks || !body.tracks.length) throw new Error('No playable tracks on that release');
+
+                    this.player.loading = false;
+                    this.startQueue({
+                        source: 'preview',
+                        url: release.url,
+                        album: body.title || release.title,
+                        artist: body.artist || release.artist || '',
+                        cover: body.cover || release.cover || '',
+                        tracks: body.tracks,
+                        start: 0
+                    });
+                } catch (e) {
+                    this.player.loading = false;
+                    this.player.error = (e && e.message) || 'Could not load that preview';
+                }
+            },
+
+            startQueue({ source, url, album, artist, cover, tracks, start = 0 }) {
+                // Closed while a preview was resolving -> stay closed.
+                if (!this.player.open) return;
+                this.player = {
+                    open: true,
+                    source,
+                    url,
+                    album,
+                    artist,
+                    cover,
+                    tracks,
+                    index: Math.min(start, tracks.length - 1),
+                    playing: false,
+                    loading: false,
+                    blocked: false,
+                    error: '',
+                    current: 0,
+                    duration: tracks[start]?.duration || 0,
+                    listOpen: this.player.listOpen
+                };
+                this.loadTrack(this.player.index, true);
+            },
+
+            loadTrack(position, autoplay = true) {
+                const track = this.player.tracks[position];
+                if (!track) return;
+                const el = this.audio();
+                this.player.index = position;
+                this.player.current = 0;
+                this.player.duration = track.duration || 0;
+                this.player.blocked = false;
+                this.player.error = '';
+                el.src = track.stream;
+                el.load();
+                this.updateMediaSession();
+                if (autoplay) this.tryPlay();
+            },
+
+            async tryPlay() {
+                const el = this.audio();
+                if (!el.src) return;
+                try {
+                    await el.play();
+                    this.player.playing = true;
+                    this.player.blocked = false;
+                } catch (e) {
+                    // iOS Safari refuses play() once the click's gesture has been
+                    // spent on an await, so offer one more tap instead of silence.
+                    this.player.playing = false;
+                    this.player.blocked = true;
+                    this.player.error = (e && e.message) || 'Could not start playback';
+                }
+            },
+
+            onPlay() {
+                this.player.playing = true;
+                this.player.blocked = false;
+            },
+
+            togglePlay() {
+                const el = this.audio();
+                if (!el.src) {
+                    if (this.player.tracks.length) this.loadTrack(this.player.index < 0 ? 0 : this.player.index, true);
+                    return;
+                }
+                if (el.paused) this.tryPlay();
+                else el.pause();
+            },
+
+            playTrackAt(position) {
+                this.loadTrack(position, true);
+            },
+
+            nextTrack() {
+                if (this.player.index + 1 < this.player.tracks.length) this.loadTrack(this.player.index + 1, true);
+                else this.player.playing = false;
+            },
+
+            prevTrack() {
+                const el = this.audio();
+                if (el.currentTime > 3 || this.player.index <= 0) {
+                    if (el.src) el.currentTime = 0;
+                    return;
+                }
+                this.loadTrack(this.player.index - 1, true);
+            },
+
+            seekTo(event) {
+                const value = Number(event.target.value);
+                if (!Number.isFinite(value)) return;
+                const el = this.audio();
+                this.player.current = value;
+                if (el.src) el.currentTime = value;
+            },
+
+            onTimeUpdate() {
+                const el = this.audio();
+                this.player.current = el.currentTime || 0;
+                if (Number.isFinite(el.duration) && el.duration > 0) this.player.duration = el.duration;
+            },
+
+            onLoadedMeta() {
+                const el = this.audio();
+                if (Number.isFinite(el.duration) && el.duration > 0) this.player.duration = el.duration;
+            },
+
+            onAudioError() {
+                if (!this.player.tracks.length) return;
+                this.player.error = this.player.source === 'preview'
+                    ? 'That stream link expired or was refused. Open the release again for a fresh one.'
+                    : 'Could not play that file.';
+                this.player.playing = false;
+            },
+
+            closePlayer() {
+                const el = this.audio();
+                el.pause();
+                el.removeAttribute('src');
+                el.load();
+                this.player = { ...this.player, open: false, playing: false, blocked: false, error: '', tracks: [], index: -1, listOpen: false, current: 0, duration: 0 };
+            },
+
+            currentTrack() {
+                return this.player.tracks[this.player.index] || null;
+            },
+
+            playerTitle() {
+                const track = this.currentTrack();
+                if (track) return track.title;
+                return this.player.album || 'Nothing playing';
+            },
+
+            playerSubtitle() {
+                if (this.player.loading) return 'Resolving preview…';
+                const track = this.currentTrack();
+                if (!track) return '';
+                const parts = [];
+                if (this.player.artist) parts.push(this.player.artist);
+                else if (this.player.album) parts.push(this.player.album);
+                if (this.player.tracks.length > 1) parts.push(`track ${this.player.index + 1} of ${this.player.tracks.length}`);
+                else if (this.player.source === 'preview') parts.push('preview from Bandcamp');
+                return parts.join(' · ');
+            },
+
+            updateMediaSession() {
+                if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return;
+                const track = this.currentTrack();
+                if (!track) return;
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: track.title,
+                    artist: this.player.artist || this.player.album || 'bandcamp downloader',
+                    album: this.player.album || '',
+                    artwork: this.player.cover ? [{ src: this.player.cover, sizes: '512x512', type: 'image/jpeg' }] : []
+                });
+                const handlers = {
+                    play: () => this.tryPlay(),
+                    pause: () => this.audio().pause(),
+                    nexttrack: () => this.nextTrack(),
+                    previoustrack: () => this.prevTrack(),
+                    seekto: details => {
+                        if (details && Number.isFinite(details.seekTime)) {
+                            const el = this.audio();
+                            if (el.src) el.currentTime = details.seekTime;
+                            this.player.current = details.seekTime;
+                        }
+                    }
+                };
+                for (const [action, handler] of Object.entries(handlers)) {
+                    try {
+                        navigator.mediaSession.setActionHandler(action, handler);
+                    } catch (e) { /* unsupported action */ }
+                }
+            },
+
+            trackTitle(filename) {
+                return filename
+                    .replace(/\.[^.]+$/, '')
+                    .replace(/^\d{1,3}\s*-\s*/, '');
             },
 
             formatDuration(seconds) {

@@ -3,12 +3,12 @@
 A small self-hosted web app for archiving Bandcamp music. Built to run in a
 lightweight Proxmox LXC container, no external services required.
 
-Current version: **1.0** — see [CHANGELOG.md](CHANGELOG.md).
+Current version: **1.1** — see [CHANGELOG.md](CHANGELOG.md).
 
 ![The app: new download form, storage, label watch and library](docs/screenshot.png)
 
-*The current build: new download form, storage, two watched labels and the
-library below.*
+*The current build: new download form, storage, two watched labels, the library
+below and the web player.*
 
 ## What it does
 
@@ -27,6 +27,10 @@ library below.*
 - A label watch lists a label's or artist's catalogue as a compact cover grid
   (or a list with thumbnails), with a plus button to queue any release and a
   "new" badge on releases that appeared since the last check.
+- A web player streams a **preview** of any release in the browser — the
+  Bandcamp CDN stream is handed straight to the audio element, nothing is
+  written to disk. Track list, seek, prev/next, skip and media-session support
+  included.
 
 ## Library
 
