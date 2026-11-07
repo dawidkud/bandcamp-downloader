@@ -27,7 +27,9 @@ from urllib.request import Request as UrlRequest
 from urllib.request import urlopen
 
 import yt_dlp
+from yt_dlp.networking.impersonate import ImpersonateTarget
 from mutagen.flac import FLAC
+
 from mutagen.mp3 import MP3
 from mutagen.mp4 import MP4
 from mutagen.wave import WAVE
@@ -42,6 +44,12 @@ from starlette.middleware.base import BaseHTTPMiddleware
 BASE_DIR = Path(__file__).resolve().parent
 
 VERSION = "1.1"
+
+try:
+    IMPERSONATE_TARGET = ImpersonateTarget.from_str("chrome-133:macos-15")
+except Exception:
+    IMPERSONATE_TARGET = None
+
 
 DOWNLOAD_ROOT = Path(os.environ.get("DOWNLOAD_ROOT") or BASE_DIR / "downloads").resolve()
 DOWNLOAD_ROOT.mkdir(parents=True, exist_ok=True)
@@ -296,6 +304,9 @@ def build_ydl_opts(task_id: str, fmt: str, output_dir: Path) -> dict:
         "writethumbnail": fmt != "wav",
         "postprocessors": [],
     }
+
+    if IMPERSONATE_TARGET:
+        opts["impersonate"] = IMPERSONATE_TARGET
 
     codec = FORMATS[fmt]["codec"]
     if codec:
@@ -883,6 +894,8 @@ def resolve_preview(url: str) -> dict:
         "noplaylist": False,
         "socket_timeout": 30,
     }
+    if IMPERSONATE_TARGET:
+        opts["impersonate"] = IMPERSONATE_TARGET
     with yt_dlp.YoutubeDL(opts) as ydl:
         info = ydl.extract_info(url, download=False)
 
