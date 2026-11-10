@@ -22,18 +22,21 @@
             </div>
         </div>
 
-        <span class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs font-medium text-slate-300">
-            <span class="h-2 w-2 rounded-full" :class="health.online ? 'bg-emerald-400' : 'bg-red-400'" aria-hidden="true"></span>
-            <span x-text="health.online ? 'Service online' : 'Service unreachable'">Checking…</span>
-        </span>
+        <div class="flex items-center gap-3">
+            <button @click="toggleLang()" class="text-xs font-medium text-slate-400 hover:text-indigo-400" x-text="lang === 'en' ? 'PL' : 'EN'"></button>
+            <span class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs font-medium text-slate-300">
+                <span class="h-2 w-2 rounded-full" :class="health.online ? 'bg-emerald-400' : 'bg-red-400'" aria-hidden="true"></span>
+                <span x-text="health.online ? t('service.online') : t('service.offline')">Checking…</span>
+            </span>
+        </div>
     </header>
 
     <!-- New download -->
-    <section class="card-blur mb-8 rounded-2xl p-6 shadow-2xl" aria-labelledby="new-download-heading">
+    <section class="glass-card mb-8 rounded-2xl p-6 shadow-2xl" aria-labelledby="new-download-heading">
         <h2 id="new-download-heading" class="sr-only">New download</h2>
         <form @submit.prevent="startDownload()" class="space-y-5">
             <div>
-                <label for="url" class="mb-2 block text-sm font-medium text-slate-300">Bandcamp URL</label>
+                <label for="url" class="mb-2 block text-sm font-medium text-slate-300" x-text="t('download.label')">Bandcamp URL</label>
                 <div class="relative">
                     <svg class="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                     <input id="url" name="url" type="text" x-model.trim="form.url" required
@@ -45,7 +48,7 @@
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                    <label for="format" class="mb-2 block text-sm font-medium text-slate-300">Format</label>
+                    <label for="format" class="mb-2 block text-sm font-medium text-slate-300" x-text="t('format.label')">Format</label>
                     <select id="format" name="format" x-model="form.format" class="field cursor-pointer">
                         {% for key, meta in formats.items() %}
                         <option value="{{ key }}">{{ meta.label }}</option>
@@ -55,7 +58,9 @@
                 </div>
 
                 <div>
-                    <label for="folder" class="mb-2 block text-sm font-medium text-slate-300">Save to subfolder <span class="font-normal text-slate-400">(optional)</span></label>
+                    <label for="folder" class="mb-2 block text-sm font-medium text-slate-300">
+                        <span x-text="t('folder.label')">Save to subfolder</span> <span class="font-normal text-slate-400" x-text="t('folder.optional')">(optional)</span>
+                    </label>
                     <div class="relative">
                         <svg class="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
                         <input id="folder" name="folder" type="text" x-model.trim="form.folder"
@@ -67,7 +72,7 @@
             <div x-show="form.format !== 'original'" x-cloak
                  class="flex gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-200">
                 <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
-                <p>Bandcamp free streams are about 128&nbsp;kbps MP3. Re-encoding to FLAC, WAV or 320&nbsp;kbps cannot restore detail — it only makes the file bigger.</p>
+                <p x-text="lang === 'pl' ? 'Darmowe strumienie z Bandcamp to pliki MP3 o transmisji ok. 128 kbps. Konwersja do FLAC, WAV lub 320 kbps nie przywróci utraconych detali — jedynie zwiększy rozmiar pliku.' : 'Bandcamp free streams are about 128&nbsp;kbps MP3. Re-encoding to FLAC, WAV or 320&nbsp;kbps cannot restore detail — it only makes the file bigger.'"></p>
             </div>
 
             <div x-show="formError" x-cloak role="alert"
@@ -77,7 +82,7 @@
                     class="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3.5 font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50">
                 <svg x-show="!loading" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
                 <svg x-show="loading" x-cloak class="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"/><path d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" class="opacity-75"/></svg>
-                <span x-text="loading ? 'Starting…' : 'Start download'"></span>
+                <span x-text="loading ? (lang === 'pl' ? 'Uruchamianie…' : 'Starting…') : (lang === 'pl' ? 'Rozpocznij pobieranie' : 'Start download')"></span>
             </button>
         </form>
     </section>
@@ -87,24 +92,25 @@
         <div class="mb-4 flex items-center justify-between">
             <h2 id="queue-heading" class="flex items-center gap-2 text-lg font-semibold">
                 <svg class="h-5 w-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15V6"/><path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M12 12H3"/><path d="M16 6H3"/><path d="M12 18H3"/></svg>
-                Download queue
+                <span x-text="lang === 'pl' ? 'Kolejka pobierania' : 'Download queue'">Download queue</span>
             </h2>
             <button type="button" @click="clearFinished()" x-show="hasFinished()"
-                    class="text-xs font-medium text-slate-400 underline-offset-2 hover:text-slate-200 hover:underline">
+                    class="text-xs font-medium text-slate-400 underline-offset-2 hover:text-slate-200 hover:underline"
+                    x-text="lang === 'pl' ? 'Wyczyść ukończone' : 'Clear finished'">
                 Clear finished
             </button>
         </div>
 
         <ul class="space-y-3" role="list">
             <template x-for="task in tasks" :key="task.id">
-                <li class="card-blur rounded-xl p-4">
+                <li class="glass-card rounded-xl p-4">
                     <div class="mb-3 flex items-start justify-between gap-4">
                         <div class="flex min-w-0 items-center gap-3">
                             <div class="rounded-lg bg-slate-800 p-2 text-indigo-400" aria-hidden="true">
                                 <svg class="h-5 w-5" :class="isBusy(task) ? 'animate-spin' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
                             </div>
                             <div class="min-w-0">
-                                <p class="truncate font-medium text-slate-100" x-text="task.title || 'Reading metadata…'"></p>
+                                <p class="truncate font-medium text-slate-100" x-text="task.title || (lang === 'pl' ? 'Odczytywanie metadanych…' : 'Reading metadata…')"></p>
                                 <p class="truncate text-xs text-slate-400" x-text="subtitle(task)"></p>
                             </div>
                         </div>
@@ -121,13 +127,13 @@
 
                     <div class="mt-3 flex items-center gap-3 text-xs">
                         <button type="button" x-show="isBusy(task)" @click="cancel(task)"
-                                class="font-medium text-slate-400 hover:text-red-300">Cancel</button>
+                                class="font-medium text-slate-400 hover:text-red-300" x-text="lang === 'pl' ? 'Anuluj' : 'Cancel'">Cancel</button>
                         <button type="button" x-show="canRetry(task)" @click="retry(task)"
-                                class="font-medium text-indigo-300 hover:text-indigo-200">Retry</button>
+                                class="font-medium text-indigo-300 hover:text-indigo-200" x-text="lang === 'pl' ? 'Ponów' : 'Retry'">Retry</button>
                         <button type="button" x-show="!isBusy(task)" @click="dismiss(task)"
-                                class="font-medium text-slate-400 hover:text-slate-200">Dismiss</button>
+                                class="font-medium text-slate-400 hover:text-slate-200" x-text="lang === 'pl' ? 'Usuń' : 'Dismiss'">Dismiss</button>
                         <a x-show="task.status === 'completed'" :href="'#library'" @click="expandLibrary()"
-                           class="ml-auto font-medium text-emerald-300 hover:text-emerald-200">View in library</a>
+                           class="ml-auto font-medium text-emerald-300 hover:text-emerald-200" x-text="lang === 'pl' ? 'Zobacz w bibliotece' : 'View in library'">View in library</a>
                     </div>
                 </li>
             </template>
@@ -136,14 +142,14 @@
 
     <!-- Storage -->
     <section class="mb-10" aria-labelledby="storage-heading">
-        <div class="card-blur rounded-2xl p-4 sm:p-5">
+        <div class="glass-card rounded-2xl p-4 sm:p-5">
             <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <h2 id="storage-heading" class="flex items-center gap-2 text-sm font-semibold text-slate-200">
                     <svg class="h-4 w-4 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg>
-                    Storage
+                    <span x-text="lang === 'pl' ? 'Pamięć masowa' : 'Storage'">Storage</span>
                 </h2>
                 <span class="text-xs text-slate-400"
-                      x-text="`${formatBytes(health.disk.used)} used of ${formatBytes(health.disk.total)}`"></span>
+                      x-text="lang === 'pl' ? `${formatBytes(health.disk.used)} użyte z ${formatBytes(health.disk.total)}` : `${formatBytes(health.disk.used)} used of ${formatBytes(health.disk.total)}`"></span>
             </div>
 
             <div class="h-2 w-full overflow-hidden rounded-full bg-slate-800"
@@ -153,8 +159,8 @@
             </div>
 
             <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <span class="text-slate-300" x-text="`${formatBytes(health.disk.free)} free`"></span>
-                <span class="text-slate-400" x-text="`${library.length} album${library.length === 1 ? '' : 's'} · ${formatBytes(libraryTotal())} of music`"></span>
+                <span class="text-slate-300" x-text="lang === 'pl' ? `${formatBytes(health.disk.free)} wolnego` : `${formatBytes(health.disk.free)} free`"></span>
+                <span class="text-slate-400" x-text="lang === 'pl' ? `${library.length} ${library.length === 1 ? 'album' : 'albumów'} · ${formatBytes(libraryTotal())} muzyki` : `${library.length} album${library.length === 1 ? '' : 's'} · ${formatBytes(libraryTotal())} of music`"></span>
             </div>
         </div>
     </section>
@@ -164,35 +170,35 @@
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 id="labels-heading" class="flex items-center gap-2 text-lg font-semibold">
                 <svg class="h-5 w-5 text-fuchsia-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                Labels
+                <span x-text="t('labels.title')">Labels</span>
             </h2>
             <button type="button" @click="refreshAllLabels()" :disabled="labelsBusy"
                     class="text-xs font-medium text-slate-400 underline-offset-2 hover:text-slate-200 hover:underline disabled:opacity-50">
-                <span x-text="labelsBusy ? 'Refreshing…' : 'Refresh all'"></span>
+                <span x-text="labelsBusy ? t('labels.refreshing') : t('labels.refresh')">Refresh all</span>
             </button>
         </div>
 
-        <form @submit.prevent="addLabel()" class="card-blur mb-4 rounded-2xl p-4">
-            <label for="label-url" class="mb-2 block text-sm font-medium text-slate-300">Watch a label or artist</label>
+        <form @submit.prevent="addLabel()" class="glass-card mb-4 rounded-2xl p-4">
+            <label for="label-url" class="mb-2 block text-sm font-medium text-slate-300" x-text="t('labels.watch')">Watch a label or artist</label>
             <div class="flex flex-col gap-2 sm:flex-row">
                 <input id="label-url" type="text" x-model.trim="labelForm.url" autocomplete="off" spellcheck="false"
                        inputmode="url" placeholder="https://label.bandcamp.com" class="field flex-1">
                 <button type="submit" :disabled="labelForm.loading || !labelForm.url"
                         class="rounded-xl bg-fuchsia-600 px-5 py-3 font-semibold text-white transition hover:bg-fuchsia-500 disabled:cursor-not-allowed disabled:opacity-50">
-                    <span x-text="labelForm.loading ? 'Adding…' : 'Add'"></span>
+                    <span x-text="labelForm.loading ? t('labels.adding') : t('labels.add')">Add</span>
                 </button>
             </div>
             <p x-show="labelError" x-cloak role="alert"
                class="mt-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-200" x-text="labelError"></p>
         </form>
 
-        <p x-show="labels.length === 0 && !labelsBusy" x-cloak class="card-blur rounded-2xl p-6 text-center text-sm text-slate-400">
+        <p x-show="labels.length === 0 && !labelsBusy" x-cloak class="glass-card rounded-2xl p-6 text-center text-sm text-slate-400" x-text="t('labels.empty')">
             No labels watched yet. Paste a label or artist page above to browse its catalogue.
         </p>
 
         <div class="space-y-4">
             <template x-for="label in labels" :key="label.slug">
-                <div class="card-blur rounded-2xl p-4">
+                <div class="glass-card rounded-2xl p-4">
                     <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
                         <div class="min-w-0">
                             <p class="flex items-center gap-2 font-semibold text-slate-100">
@@ -356,16 +362,16 @@
         <div class="mb-4 flex items-center justify-between">
             <h2 id="library-heading" class="flex items-center gap-2 text-lg font-semibold">
                 <svg class="h-5 w-5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
-                Library
+                <span x-text="t('library.title')">Library</span>
             </h2>
-            <button type="button" @click="fetchLibrary()" class="text-xs font-medium text-slate-400 underline-offset-2 hover:text-slate-200 hover:underline">Refresh</button>
+            <button type="button" @click="fetchLibrary()" class="text-xs font-medium text-slate-400 underline-offset-2 hover:text-slate-200 hover:underline" x-text="t('library.refresh')">Refresh</button>
         </div>
 
         <p x-show="libraryError" x-cloak role="alert"
            class="mb-3 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200" x-text="libraryError"></p>
 
-        <div class="card-blur rounded-2xl p-4 sm:p-6">
-            <p x-show="library.length === 0" x-cloak class="py-6 text-center text-sm text-slate-400">Nothing downloaded yet.</p>
+        <div class="glass-card rounded-2xl p-4 sm:p-6">
+            <p x-show="library.length === 0" x-cloak class="py-6 text-center text-sm text-slate-400" x-text="t('library.empty')">Nothing downloaded yet.</p>
 
             <ul class="space-y-3" role="list">
                 <template x-for="album in library" :key="album.folder || '__root__'">
@@ -569,10 +575,61 @@
 
 <script>
     const FORMATS = {{ formats | tojson }};
+    const TRANSLATIONS = {
+        en: {
+            'service.online': 'Service online',
+            'service.offline': 'Service unreachable',
+            'download.label': 'Bandcamp URL',
+            'format.label': 'Format',
+            'folder.label': 'Save to subfolder',
+            'folder.optional': '(optional)',
+            'queue.title': 'Download queue',
+            'queue.clear': 'Clear finished',
+            'storage.title': 'Storage',
+            'labels.title': 'Labels',
+            'labels.refresh': 'Refresh all',
+            'labels.refreshing': 'Refreshing…',
+            'labels.watch': 'Watch a label or artist',
+            'labels.add': 'Add',
+            'labels.adding': 'Adding…',
+            'labels.empty': 'No labels watched yet. Paste a label or artist page above to browse its catalogue.',
+            'library.title': 'Library',
+            'library.refresh': 'Refresh',
+            'library.empty': 'Nothing downloaded yet.',
+            'library.download': 'Download',
+            'library.delete': 'Delete'
+        },
+        pl: {
+            'service.online': 'Usługa dostępna',
+            'service.offline': 'Usługa niedostępna',
+            'download.label': 'URL Bandcamp',
+            'format.label': 'Format',
+            'folder.label': 'Zapisz w podfolderze',
+            'folder.optional': '(opcjonalnie)',
+            'queue.title': 'Kolejka pobierania',
+            'queue.clear': 'Wyczyść ukończone',
+            'storage.title': 'Pamięć masowa',
+            'labels.title': 'Wytwórnie i Artyści',
+            'labels.refresh': 'Odśwież wszystko',
+            'labels.refreshing': 'Odświeżanie…',
+            'labels.watch': 'Obserwuj wytwórnię lub artystę',
+            'labels.add': 'Dodaj',
+            'labels.adding': 'Dodawanie…',
+            'labels.empty': 'Brak obserwowanych wytwórni. Wklej link powyżej, aby przeglądać katalog.',
+            'library.title': 'Biblioteka',
+            'library.refresh': 'Odśwież',
+            'library.empty': 'Brak pobranych utworów.',
+            'library.download': 'Pobierz',
+            'library.delete': 'Usuń'
+        }
+    };
 
     function archiver() {
         return {
             formats: FORMATS,
+            lang: localStorage.getItem('lang') || 'en',
+            t(key) { return TRANSLATIONS[this.lang][key] || key; },
+            toggleLang() { this.lang = this.lang === 'en' ? 'pl' : 'en'; localStorage.setItem('lang', this.lang); },
             form: { url: '', format: 'original', folder: '' },
             loading: false,
             formError: '',

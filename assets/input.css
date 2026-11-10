@@ -43,9 +43,13 @@
     background-attachment: fixed;
   }
 
-  .card-blur {
-    background: rgba(30, 41, 59, 0.72);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+  .glass-card {
+    @apply bg-slate-900/40 backdrop-blur-xl border border-white/5 shadow-2xl;
+  }
+  .glass-header {
+    @apply bg-slate-900/60 backdrop-blur-md border-b border-white/5;
+  }
+  .glow-indigo {
+    @apply shadow-[0_0_15px_rgba(79,70,229,0.15)];
   }
 }
