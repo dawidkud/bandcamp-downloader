@@ -8,8 +8,9 @@
     <link rel="stylesheet" href="/static/app.css">
     <script defer src="/static/vendor/alpine.min.js"></script>
 </head>
-<body class="gradient-bg text-slate-100 min-h-screen antialiased transition-all duration-700" :class="theme">
-<div class="mx-auto max-w-4xl px-4 py-8" :class="player.open ? 'pb-48' : ''" x-data="archiver()" x-init="init()">
+<body class="gradient-bg text-slate-100 min-h-screen antialiased transition-all duration-700"
+      x-data="archiver()" x-init="init()" :class="theme">
+<div class="mx-auto max-w-4xl px-4 py-8" :class="player.open ? 'pb-48' : ''">
 
     <header class="mb-10 flex flex-wrap items-center justify-between gap-4">
         <div class="flex items-center gap-3">
