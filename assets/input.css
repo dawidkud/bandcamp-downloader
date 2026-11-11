@@ -42,16 +42,19 @@
     --bg-start: #0f172a;
     --bg-end: #1e3a8a;
     --accent: #38bdf8;
+    --card-bg: rgba(30, 41, 59, 0.4);
   }
   .theme-sunset {
     --bg-start: #450a0a;
     --bg-end: #7c2d12;
     --accent: #fb923c;
+    --card-bg: rgba(69, 10, 10, 0.4);
   }
   .theme-forest {
     --bg-start: #064e3b;
     --bg-end: #065f46;
     --accent: #4ade80;
+    --card-bg: rgba(6, 78, 59, 0.4);
   }
 
   .gradient-bg {
@@ -60,7 +63,9 @@
   }
 
   .glass-card {
-    @apply bg-slate-900/40 backdrop-blur-xl border border-white/5 shadow-2xl;
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
   .glass-header {
     @apply bg-slate-900/60 backdrop-blur-md border-b border-white/5;
