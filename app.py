@@ -28,6 +28,7 @@ from urllib.request import urlopen
 
 import yt_dlp
 from yt_dlp.networking.impersonate import ImpersonateTarget
+from yt_dlp.networking.impersonate import ImpersonateTarget
 from mutagen.flac import FLAC
 
 from mutagen.mp3 import MP3
@@ -44,6 +45,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 BASE_DIR = Path(__file__).resolve().parent
 
 VERSION = "1.1"
+AUTO_DOWNLOAD_ENABLED = os.environ.get("AUTO_DOWNLOAD", "false").lower() == "true"
+CHECK_INTERVAL = int(os.environ.get("CHECK_INTERVAL", "21600"))
 
 try:
     IMPERSONATE_TARGET = ImpersonateTarget.from_str("chrome-133:macos-15")
@@ -1200,6 +1203,40 @@ async def delete_label(slug: str):
             raise HTTPException(status_code=404, detail="Unknown label")
         save_labels(remaining)
     return {"ok": True}
+
+
+async def background_worker():
+    """Periodically refreshes labels and optionally auto-downloads new releases."""
+    while True:
+        try:
+            with LABELS_LOCK:
+                labels = load_labels()
+            
+            for label in labels:
+                await asyncio.to_thread(refresh_label, label)
+                
+                if AUTO_DOWNLOAD_ENABLED:
+                    new_releases = [r for r in (label.get("releases") or []) if r["id"] not in (label.get("seen") or [])]
+                    for release in new_releases:
+                        task = create_task(release["url"], "original", label["name"])
+                        # We don't await the download here, we just queue it in the semaphore pool
+                        asyncio.create_task(run_download_task(task["id"], release["url"], "original", label["name"]))
+                    
+                    if new_releases:
+                        label["seen"] = [r["id"] for r in (label.get("releases") or [])]
+
+            with LABELS_LOCK:
+                save_labels(labels)
+                
+        except Exception as e:
+            print(f"Background worker error: {e}")
+            
+        await asyncio.sleep(CHECK_INTERVAL)
+
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(background_worker())
 
 
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
