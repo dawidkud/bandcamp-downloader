@@ -302,6 +302,7 @@ def build_ydl_opts(task_id: str, fmt: str, output_dir: Path) -> dict:
         "ignoreerrors": False,
         "windowsfilenames": False,
         "writethumbnail": fmt != "wav",
+        "cookiefile": str(STATE_DIR / "cookies" / "cookies.txt") if (STATE_DIR / "cookies" / "cookies.txt").exists() else None,
         "postprocessors": [],
     }
 
@@ -893,6 +894,7 @@ def resolve_preview(url: str) -> dict:
         "skip_download": True,
         "noplaylist": False,
         "socket_timeout": 30,
+        "cookiefile": str(STATE_DIR / "cookies" / "cookies.txt") if (STATE_DIR / "cookies" / "cookies.txt").exists() else None,
     }
     if IMPERSONATE_TARGET:
         opts["impersonate"] = IMPERSONATE_TARGET
