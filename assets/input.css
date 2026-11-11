@@ -38,8 +38,24 @@
     display: none !important;
   }
 
+  .theme-ocean {
+    --bg-start: #0f172a;
+    --bg-end: #1e3a8a;
+    --accent: #38bdf8;
+  }
+  .theme-sunset {
+    --bg-start: #450a0a;
+    --bg-end: #7c2d12;
+    --accent: #fb923c;
+  }
+  .theme-forest {
+    --bg-start: #064e3b;
+    --bg-end: #065f46;
+    --accent: #4ade80;
+  }
+
   .gradient-bg {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    background: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%);
     background-attachment: fixed;
   }
 
@@ -49,7 +65,7 @@
   .glass-header {
     @apply bg-slate-900/60 backdrop-blur-md border-b border-white/5;
   }
-  .glow-indigo {
-    @apply shadow-[0_0_15px_rgba(79,70,229,0.15)];
+  .glow-accent {
+    @apply shadow-[0_0_15px_var(--accent)];
   }
 }
