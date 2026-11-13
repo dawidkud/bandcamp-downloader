@@ -34,18 +34,19 @@ two watched labels and the library.*
 
 ## Interface
 
-**Themes.** Violet, Teal, Amber and Rose. The layout is a neutral near-black
-surface; the theme only changes the accent hue, which drives the logo, buttons,
-links, focus rings, progress bars, chips and the glow behind the header. The tab
-favicon follows the accent too. The choice lives in `localStorage`, so each
-browser keeps its own.
+**Themes.** Violet, Teal, Amber and Rose. The layout uses a neutral near-black
+surface with theme-driven radial gradients that tint the entire background and
+card surfaces. The accent hue also drives the logo, buttons, links, focus rings,
+progress bars, chips and the tab favicon. The choice lives in `localStorage`, so
+each browser keeps its own.
 
 **Language.** EN and PL switch every label, button and empty state in the UI.
 Also stored per browser.
 
 **New-release ticker.** When watched labels have releases you have not seen yet,
-a pulsing count appears in the header. It reads from the same state as the
-per-label "New" badges, so it needs no extra request.
+a pulsing count appears in the header. **Hovering** over it shows a summary of
+which labels have new music. It reads from the same state as the per-label "New"
+badges, so it needs no extra request.
 
 **Keyboard.** With the player open: `Space` toggles playback, `←`/`→` seek ten
 seconds, `Esc` closes the player. Key presses inside form fields and on buttons

@@ -11,15 +11,17 @@ what was already there.
 
 ### Added
 
-- **Four themes** — Violet, Teal, Amber and Rose. One neutral near-black surface,
-  the accent hue recolours the logo, buttons, links, focus rings, progress bars,
-  chips and the page glow. The choice is stored in `localStorage` and the tab
-  favicon follows it.
+- **Four themes** — Violet, Teal, Amber and Rose. One neutral near-black surface;
+  the accent hue recolours the entire background and card surfaces with deep
+  radial gradients, and drives the logo, buttons, links, focus rings, progress
+  bars, chips and the page glow. The choice is stored in `localStorage` and the
+  tab favicon follows it.
 - **Polish / English toggle.** Every label, button and empty state in the UI
   switches language, and the choice is remembered. The old hardcoded English
   strings are gone from the markup.
 - **New-release ticker** in the header: a pulsing count of everything the watched
-  labels published since the last check.
+  labels published since the last check. **Hovering** over it shows a popup
+  summary of exactly which labels have new music.
 - **Background label worker.** Watched labels are re-checked on a timer
   (`CHECK_INTERVAL`, default 6 h) instead of only when you open the page.
 - **`AUTO_DOWNLOAD=true`** makes that worker queue new releases automatically
