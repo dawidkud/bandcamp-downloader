@@ -31,7 +31,7 @@
                             :aria-pressed="theme === option.id ? 'true' : 'false'"
                             :title="option.name" :aria-label="option.name"
                             class="h-5 w-5 rounded-full border transition hover:scale-110"
-                            :class="theme === option.id ? 'border-white ring-2 ring-white/25 scale-110' : 'border-white/15'"></button>
+                            :class="theme === option.id ? 'border-white ring-2 ring-white/25 scale-110' : 'border-zinc-700/50'"></button>
                 </template>
             </div>
             <div class="relative group" x-show="newReleasesCount() > 0" x-cloak>
@@ -43,7 +43,7 @@
                     <span x-text="lang === 'pl' ? `${newReleasesCount()} nowych` : `${newReleasesCount()} new`"></span>
                 </div>
                 <!-- Hover popup -->
-                <div class="absolute right-0 top-full mt-2 w-64 glass-card rounded-xl p-3 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[60]">
+                <div class="absolute right-0 top-full mt-2 w-64 glass-card rounded-xl p-3 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[60] origin-top-right">
                     <p class="mb-2 text-xs font-semibold text-zinc-200" x-text="lang === 'pl' ? 'Nowe wydania:' : 'New releases:'"></p>
                     <ul class="space-y-1.5">
                         <template x-for="label in labels.filter(l => l.new_count > 0)" :key="label.slug">
