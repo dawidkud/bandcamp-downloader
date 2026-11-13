@@ -12,6 +12,11 @@
     --accent-soft: rgba(124, 58, 237, 0.14);
     --accent-soft-strong: rgba(124, 58, 237, 0.24);
     --accent-glow: rgba(124, 58, 237, 0.3);
+    --bg-base: #0d0a15;
+    --bg-top: rgba(124, 58, 237, 0.35);
+    --bg-bottom: rgba(88, 28, 135, 0.25);
+    --card-bg: rgba(22, 16, 36, 0.75);
+    --card-border: rgba(167, 139, 250, 0.12);
   }
 
   body {
@@ -27,7 +32,7 @@
 
 @layer components {
   .field {
-    @apply w-full rounded-xl border border-zinc-700 bg-zinc-900/60 px-4 py-3 text-zinc-100 outline-none transition placeholder:text-zinc-400;
+    @apply w-full rounded-xl border border-zinc-700/80 bg-zinc-900/70 px-4 py-3 text-zinc-100 outline-none transition placeholder:text-zinc-400;
   }
 
   .player-btn {
@@ -45,57 +50,77 @@
     display: none !important;
   }
 
-  /* ---------- themes: one neutral surface, four accent hues ---------- */
+  /* ---------- themes: background tone + accent hues ---------- */
   .theme-violet {
     --accent: #7c3aed;
     --accent-hover: #8b5cf6;
     --accent-text: #c4b5fd;
-    --accent-soft: rgba(124, 58, 237, 0.14);
-    --accent-soft-strong: rgba(124, 58, 237, 0.24);
-    --accent-glow: rgba(124, 58, 237, 0.3);
+    --accent-soft: rgba(124, 58, 237, 0.16);
+    --accent-soft-strong: rgba(124, 58, 237, 0.26);
+    --accent-glow: rgba(124, 58, 237, 0.35);
+    --bg-base: #0d0a15;
+    --bg-top: rgba(124, 58, 237, 0.35);
+    --bg-bottom: rgba(88, 28, 135, 0.25);
+    --card-bg: rgba(22, 16, 36, 0.75);
+    --card-border: rgba(167, 139, 250, 0.14);
   }
 
   .theme-teal {
     --accent: #0f766e;
     --accent-hover: #0d9488;
     --accent-text: #5eead4;
-    --accent-soft: rgba(15, 118, 110, 0.18);
-    --accent-soft-strong: rgba(15, 118, 110, 0.3);
-    --accent-glow: rgba(20, 184, 166, 0.26);
+    --accent-soft: rgba(15, 118, 110, 0.2);
+    --accent-soft-strong: rgba(15, 118, 110, 0.32);
+    --accent-glow: rgba(20, 184, 166, 0.32);
+    --bg-base: #041212;
+    --bg-top: rgba(15, 118, 110, 0.35);
+    --bg-bottom: rgba(17, 94, 89, 0.25);
+    --card-bg: rgba(10, 28, 28, 0.75);
+    --card-border: rgba(45, 212, 191, 0.14);
   }
 
   .theme-amber {
     --accent: #b45309;
     --accent-hover: #d97706;
     --accent-text: #fcd34d;
-    --accent-soft: rgba(180, 83, 9, 0.18);
-    --accent-soft-strong: rgba(180, 83, 9, 0.3);
-    --accent-glow: rgba(245, 158, 11, 0.24);
+    --accent-soft: rgba(180, 83, 9, 0.2);
+    --accent-soft-strong: rgba(180, 83, 9, 0.32);
+    --accent-glow: rgba(245, 158, 11, 0.3);
+    --bg-base: #140d05;
+    --bg-top: rgba(180, 83, 9, 0.35);
+    --bg-bottom: rgba(120, 53, 15, 0.25);
+    --card-bg: rgba(28, 18, 10, 0.75);
+    --card-border: rgba(251, 191, 36, 0.14);
   }
 
   .theme-rose {
     --accent: #be123c;
     --accent-hover: #e11d48;
     --accent-text: #fda4af;
-    --accent-soft: rgba(190, 18, 60, 0.16);
-    --accent-soft-strong: rgba(190, 18, 60, 0.28);
-    --accent-glow: rgba(244, 63, 94, 0.26);
+    --accent-soft: rgba(190, 18, 60, 0.18);
+    --accent-soft-strong: rgba(190, 18, 60, 0.3);
+    --accent-glow: rgba(244, 63, 94, 0.32);
+    --bg-base: #15060b;
+    --bg-top: rgba(190, 18, 60, 0.35);
+    --bg-bottom: rgba(136, 19, 55, 0.25);
+    --card-bg: rgba(32, 12, 20, 0.75);
+    --card-border: rgba(251, 113, 133, 0.14);
   }
 
   /* ---------- surface ---------- */
   .gradient-bg {
-    background-color: #09090b;
+    background-color: var(--bg-base);
     background-image:
-      radial-gradient(72rem 36rem at 50% -12rem, var(--accent-glow), transparent 70%),
-      radial-gradient(44rem 30rem at 108% 112%, var(--accent-soft), transparent 65%);
+      radial-gradient(85rem 45rem at 50% -10rem, var(--bg-top), transparent 75%),
+      radial-gradient(55rem 35rem at 100% 100%, var(--bg-bottom), transparent 70%);
     background-attachment: fixed;
   }
 
   .glass-card {
-    background: rgba(24, 24, 27, 0.72);
+    background: var(--card-bg);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--card-border);
   }
 
   .glass-header {
@@ -103,7 +128,7 @@
   }
 
   .glow-accent {
-    box-shadow: 0 0 18px -2px var(--accent-glow);
+    box-shadow: 0 0 20px -2px var(--accent-glow);
   }
 
   /* ---------- accent remap: the theme sets the hue, markup stays generic ---------- */
