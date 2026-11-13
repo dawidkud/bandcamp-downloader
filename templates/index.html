@@ -34,6 +34,14 @@
                             :class="theme === option.id ? 'border-white ring-2 ring-white/25 scale-110' : 'border-white/15'"></button>
                 </template>
             </div>
+                <div x-show="newReleasesCount() > 0" x-cloak
+                     class="flex items-center gap-1.5 rounded-full bg-indigo-500/20 px-3 py-1 text-[11px] font-bold text-indigo-300">
+                    <span class="relative flex h-2 w-2" aria-hidden="true">
+                        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-500 opacity-75"></span>
+                        <span class="relative inline-flex h-2 w-2 rounded-full bg-indigo-500"></span>
+                    </span>
+                    <span x-text="lang === 'pl' ? `${newReleasesCount()} nowych` : `${newReleasesCount()} new`"></span>
+                </div>
                 <button @click="toggleLang()" class="text-xs font-medium text-zinc-400 hover:text-indigo-400" x-text="lang === 'en' ? 'PL' : 'EN'"></button>
             <span class="inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-800/60 px-3 py-1.5 text-xs font-medium text-zinc-300">
                 <span class="h-2 w-2 rounded-full" :class="health.online ? 'bg-emerald-400' : 'bg-red-400'" aria-hidden="true"></span>

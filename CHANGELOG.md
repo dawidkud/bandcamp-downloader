@@ -3,7 +3,44 @@
 All notable changes to this project are recorded here. The version is also
 served by `GET /api/health` and shown in the footer of the UI.
 
-## 1.1 — 2026-11-06
+## 1.2 — 2026-11-13
+
+Interface pass. The app had grown a lot of features that all looked the same;
+this release makes them themable, bilingual and better looking, and documents
+what was already there.
+
+### Added
+
+- **Four themes** — Violet, Teal, Amber and Rose. One neutral near-black surface,
+  the accent hue recolours the logo, buttons, links, focus rings, progress bars,
+  chips and the page glow. The choice is stored in `localStorage` and the tab
+  favicon follows it.
+- **Polish / English toggle.** Every label, button and empty state in the UI
+  switches language, and the choice is remembered. The old hardcoded English
+  strings are gone from the markup.
+- **New-release ticker** in the header: a pulsing count of everything the watched
+  labels published since the last check.
+- **Background label worker.** Watched labels are re-checked on a timer
+  (`CHECK_INTERVAL`, default 6 h) instead of only when you open the page.
+- **`AUTO_DOWNLOAD=true`** makes that worker queue new releases automatically
+  instead of just badging them.
+- **Cookie support.** If `data/cookies/cookies.txt` exists it is handed to
+  yt-dlp, so a logged-in account sees what it is entitled to.
+- yt-dlp now impersonates Chrome (`chrome-133:macos-15` through `curl_cffi`) to
+  get past Bandcamp's bot checks.
+
+### Changed
+
+- The palette moved from blue-tinted `slate` to neutral `zinc`, so the accent
+  colour is the only hue on screen. The saturated full-page gradients are gone.
+- Theme state moved from the wrapper `div` to `<body>`, which is what actually
+  carries the theme class. Previously only the logo picked up the colour.
+
+### Fixed
+
+- The new-release badge was missing from the header even though the count logic
+  was running.
+- A duplicated `ImpersonateTarget` import.
 
 ### Added
 

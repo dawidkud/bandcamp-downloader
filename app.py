@@ -28,7 +28,6 @@ from urllib.request import urlopen
 
 import yt_dlp
 from yt_dlp.networking.impersonate import ImpersonateTarget
-from yt_dlp.networking.impersonate import ImpersonateTarget
 from mutagen.flac import FLAC
 
 from mutagen.mp3 import MP3
@@ -44,7 +43,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 BASE_DIR = Path(__file__).resolve().parent
 
-VERSION = "1.1"
+VERSION = "1.2"
 AUTO_DOWNLOAD_ENABLED = os.environ.get("AUTO_DOWNLOAD", "false").lower() == "true"
 CHECK_INTERVAL = int(os.environ.get("CHECK_INTERVAL", "21600"))
 
