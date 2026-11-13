@@ -5,6 +5,13 @@
 @layer base {
   :root {
     color-scheme: dark;
+    /* Default palette so the first paint is never colourless. */
+    --accent: #7c3aed;
+    --accent-hover: #8b5cf6;
+    --accent-text: #c4b5fd;
+    --accent-soft: rgba(124, 58, 237, 0.14);
+    --accent-soft-strong: rgba(124, 58, 237, 0.24);
+    --accent-glow: rgba(124, 58, 237, 0.3);
   }
 
   body {
@@ -12,7 +19,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid #818cf8;
+    outline: 2px solid var(--accent-text);
     outline-offset: 2px;
     border-radius: 0.25rem;
   }
@@ -20,15 +27,15 @@
 
 @layer components {
   .field {
-    @apply w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-slate-100 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/60;
+    @apply w-full rounded-xl border border-zinc-700 bg-zinc-900/60 px-4 py-3 text-zinc-100 outline-none transition placeholder:text-zinc-400;
   }
 
   .player-btn {
-    @apply flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-slate-100;
+    @apply flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100;
   }
 
   .player-seek {
-    @apply cursor-pointer rounded-full bg-slate-700 accent-indigo-500;
+    @apply cursor-pointer rounded-full bg-zinc-700;
   }
 }
 
@@ -38,40 +45,98 @@
     display: none !important;
   }
 
-  .theme-ocean {
-    --bg-start: #0f172a;
-    --bg-end: #1e3a8a;
-    --accent: #38bdf8;
-    --card-bg: rgba(30, 41, 59, 0.4);
-  }
-  .theme-sunset {
-    --bg-start: #450a0a;
-    --bg-end: #7c2d12;
-    --accent: #fb923c;
-    --card-bg: rgba(69, 10, 10, 0.4);
-  }
-  .theme-forest {
-    --bg-start: #064e3b;
-    --bg-end: #065f46;
-    --accent: #4ade80;
-    --card-bg: rgba(6, 78, 59, 0.4);
+  /* ---------- themes: one neutral surface, four accent hues ---------- */
+  .theme-violet {
+    --accent: #7c3aed;
+    --accent-hover: #8b5cf6;
+    --accent-text: #c4b5fd;
+    --accent-soft: rgba(124, 58, 237, 0.14);
+    --accent-soft-strong: rgba(124, 58, 237, 0.24);
+    --accent-glow: rgba(124, 58, 237, 0.3);
   }
 
+  .theme-teal {
+    --accent: #0f766e;
+    --accent-hover: #0d9488;
+    --accent-text: #5eead4;
+    --accent-soft: rgba(15, 118, 110, 0.18);
+    --accent-soft-strong: rgba(15, 118, 110, 0.3);
+    --accent-glow: rgba(20, 184, 166, 0.26);
+  }
+
+  .theme-amber {
+    --accent: #b45309;
+    --accent-hover: #d97706;
+    --accent-text: #fcd34d;
+    --accent-soft: rgba(180, 83, 9, 0.18);
+    --accent-soft-strong: rgba(180, 83, 9, 0.3);
+    --accent-glow: rgba(245, 158, 11, 0.24);
+  }
+
+  .theme-rose {
+    --accent: #be123c;
+    --accent-hover: #e11d48;
+    --accent-text: #fda4af;
+    --accent-soft: rgba(190, 18, 60, 0.16);
+    --accent-soft-strong: rgba(190, 18, 60, 0.28);
+    --accent-glow: rgba(244, 63, 94, 0.26);
+  }
+
+  /* ---------- surface ---------- */
   .gradient-bg {
-    background: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%);
+    background-color: #09090b;
+    background-image:
+      radial-gradient(72rem 36rem at 50% -12rem, var(--accent-glow), transparent 70%),
+      radial-gradient(44rem 30rem at 108% 112%, var(--accent-soft), transparent 65%);
     background-attachment: fixed;
   }
 
   .glass-card {
-    background: var(--card-bg, rgba(30, 41, 59, 0.4));
+    background: rgba(24, 24, 27, 0.72);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.06);
   }
+
   .glass-header {
-    @apply bg-slate-900/60 backdrop-blur-md border-b border-white/5;
+    @apply border-b border-white/5 bg-zinc-900/60 backdrop-blur-md;
   }
+
   .glow-accent {
-    @apply shadow-[0_0_15px_var(--accent)];
+    box-shadow: 0 0 18px -2px var(--accent-glow);
+  }
+
+  /* ---------- accent remap: the theme sets the hue, markup stays generic ---------- */
+  body :is(.bg-indigo-600, .bg-indigo-600\/90, .bg-indigo-500, .bg-fuchsia-600) {
+    background-color: var(--accent);
+  }
+
+  body :is(.hover\:bg-indigo-500:hover, .hover\:bg-indigo-600:hover, .hover\:bg-fuchsia-500:hover) {
+    background-color: var(--accent-hover);
+  }
+
+  body :is(.text-indigo-200, .text-indigo-300, .text-indigo-400, .text-fuchsia-400, .text-sky-400) {
+    color: var(--accent-text);
+  }
+
+  body :is(.hover\:text-indigo-200:hover, .hover\:text-indigo-400:hover) {
+    color: var(--accent-text);
+  }
+
+  body :is(.bg-indigo-500\/10, .bg-indigo-500\/15) {
+    background-color: var(--accent-soft);
+  }
+
+  body :is(.bg-indigo-500\/20, .hover\:bg-indigo-500\/20:hover) {
+    background-color: var(--accent-soft-strong);
+  }
+
+  .field:focus {
+    border-color: var(--accent-hover);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  .player-seek {
+    accent-color: var(--accent-hover);
   }
 }

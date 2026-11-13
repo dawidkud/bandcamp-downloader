@@ -8,29 +8,34 @@
     <link rel="stylesheet" href="/static/app.css">
     <script defer src="/static/vendor/alpine.min.js"></script>
 </head>
-<body class="gradient-bg text-slate-100 min-h-screen antialiased transition-all duration-700"
+<body class="gradient-bg text-zinc-100 min-h-screen antialiased transition-all duration-700"
       x-data="archiver()" x-init="init()" :class="theme">
 <div class="mx-auto max-w-4xl px-4 py-8" :class="player.open ? 'pb-48' : ''">
 
     <header class="mb-10 flex flex-wrap items-center justify-between gap-4">
         <div class="flex items-center gap-3">
-            <div class="rounded-lg p-2 shadow-lg glow-accent transition-colors duration-500" :class="theme === 'theme-ocean' ? 'bg-indigo-600' : (theme === 'theme-sunset' ? 'bg-orange-600' : 'bg-emerald-600')" aria-hidden="true">
+            <div class="rounded-lg bg-indigo-600 p-2 shadow-lg glow-accent transition-colors duration-500" aria-hidden="true">
                 <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
             </div>
             <div>
                 <h1 class="text-2xl font-bold tracking-tight">bandcamp downloader</h1>
-                <p class="text-sm text-slate-400">Archiving sound, one URL at a time.</p>
+                <p class="text-sm text-zinc-400">Archiving sound, one URL at a time.</p>
             </div>
         </div>
 
         <div class="flex items-center gap-3">
-            <div class="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/60 p-1">
-                <button @click="setTheme('theme-ocean')" class="h-4 w-4 rounded-full bg-indigo-900 border border-white/10 hover:scale-110 transition" title="Ocean"></button>
-                <button @click="setTheme('theme-sunset')" class="h-4 w-4 rounded-full bg-orange-900 border border-white/10 hover:scale-110 transition" title="Sunset"></button>
-                <button @click="setTheme('theme-forest')" class="h-4 w-4 rounded-full bg-emerald-900 border border-white/10 hover:scale-110 transition" title="Forest"></button>
+            <div class="flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-900/60 p-1.5" role="group" aria-label="Colour theme">
+                <template x-for="option in themeOptions" :key="option.id">
+                    <button type="button" @click="setTheme(option.id)"
+                            :style="`background: ${option.swatch}`"
+                            :aria-pressed="theme === option.id ? 'true' : 'false'"
+                            :title="option.name" :aria-label="option.name"
+                            class="h-5 w-5 rounded-full border transition hover:scale-110"
+                            :class="theme === option.id ? 'border-white ring-2 ring-white/25 scale-110' : 'border-white/15'"></button>
+                </template>
             </div>
-                <button @click="toggleLang()" class="text-xs font-medium text-slate-400 hover:text-indigo-400" x-text="lang === 'en' ? 'PL' : 'EN'"></button>
-            <span class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs font-medium text-slate-300">
+                <button @click="toggleLang()" class="text-xs font-medium text-zinc-400 hover:text-indigo-400" x-text="lang === 'en' ? 'PL' : 'EN'"></button>
+            <span class="inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-800/60 px-3 py-1.5 text-xs font-medium text-zinc-300">
                 <span class="h-2 w-2 rounded-full" :class="health.online ? 'bg-emerald-400' : 'bg-red-400'" aria-hidden="true"></span>
                 <span x-text="health.online ? t('service.online') : t('service.offline')">Checking…</span>
             </span>
@@ -42,9 +47,9 @@
         <h2 id="new-download-heading" class="sr-only">New download</h2>
         <form @submit.prevent="startDownload()" class="space-y-5">
             <div>
-                <label for="url" class="mb-2 block text-sm font-medium text-slate-300" x-text="t('download.label')">Bandcamp URL</label>
+                <label for="url" class="mb-2 block text-sm font-medium text-zinc-300" x-text="t('download.label')">Bandcamp URL</label>
                 <div class="relative">
-                    <svg class="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    <svg class="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                     <input id="url" name="url" type="text" x-model.trim="form.url" required
                            autocomplete="off" spellcheck="false" inputmode="url"
                            placeholder="https://artist.bandcamp.com/album/…"
@@ -54,21 +59,21 @@
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                    <label for="format" class="mb-2 block text-sm font-medium text-slate-300" x-text="t('format.label')">Format</label>
+                    <label for="format" class="mb-2 block text-sm font-medium text-zinc-300" x-text="t('format.label')">Format</label>
                     <select id="format" name="format" x-model="form.format" class="field cursor-pointer">
                         {% for key, meta in formats.items() %}
                         <option value="{{ key }}">{{ meta.label }}</option>
                         {% endfor %}
                     </select>
-                    <p class="mt-2 text-xs leading-relaxed text-slate-400" x-text="formats[form.format].hint"></p>
+                    <p class="mt-2 text-xs leading-relaxed text-zinc-400" x-text="formats[form.format].hint"></p>
                 </div>
 
                 <div>
-                    <label for="folder" class="mb-2 block text-sm font-medium text-slate-300">
-                        <span x-text="t('folder.label')">Save to subfolder</span> <span class="font-normal text-slate-400" x-text="t('folder.optional')">(optional)</span>
+                    <label for="folder" class="mb-2 block text-sm font-medium text-zinc-300">
+                        <span x-text="t('folder.label')">Save to subfolder</span> <span class="font-normal text-zinc-400" x-text="t('folder.optional')">(optional)</span>
                     </label>
                     <div class="relative">
-                        <svg class="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+                        <svg class="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
                         <input id="folder" name="folder" type="text" x-model.trim="form.folder"
                                autocomplete="off" placeholder="e.g. Electronic" class="field pl-12">
                     </div>
@@ -101,7 +106,7 @@
                 <span x-text="lang === 'pl' ? 'Kolejka pobierania' : 'Download queue'">Download queue</span>
             </h2>
             <button type="button" @click="clearFinished()" x-show="hasFinished()"
-                    class="text-xs font-medium text-slate-400 underline-offset-2 hover:text-slate-200 hover:underline"
+                    class="text-xs font-medium text-zinc-400 underline-offset-2 hover:text-zinc-200 hover:underline"
                     x-text="lang === 'pl' ? 'Wyczyść ukończone' : 'Clear finished'">
                 Clear finished
             </button>
@@ -112,18 +117,18 @@
                 <li class="glass-card rounded-xl p-4">
                     <div class="mb-3 flex items-start justify-between gap-4">
                         <div class="flex min-w-0 items-center gap-3">
-                            <div class="rounded-lg bg-slate-800 p-2 text-indigo-400" aria-hidden="true">
+                            <div class="rounded-lg bg-zinc-800 p-2 text-indigo-400" aria-hidden="true">
                                 <svg class="h-5 w-5" :class="isBusy(task) ? 'animate-spin' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
                             </div>
                             <div class="min-w-0">
-                                <p class="truncate font-medium text-slate-100" x-text="task.title || (lang === 'pl' ? 'Odczytywanie metadanych…' : 'Reading metadata…')"></p>
-                                <p class="truncate text-xs text-slate-400" x-text="subtitle(task)"></p>
+                                <p class="truncate font-medium text-zinc-100" x-text="task.title || (lang === 'pl' ? 'Odczytywanie metadanych…' : 'Reading metadata…')"></p>
+                                <p class="truncate text-xs text-zinc-400" x-text="subtitle(task)"></p>
                             </div>
                         </div>
                         <span class="shrink-0 rounded px-2 py-1 text-[11px] font-bold uppercase tracking-wider" :class="statusClass(task.status)" x-text="task.status"></span>
                     </div>
 
-                    <div class="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-800"
+                    <div class="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-800"
                          role="progressbar" :aria-valuenow="Math.round(task.progress)" aria-valuemin="0" aria-valuemax="100"
                          :aria-label="'Progress for ' + (task.title || 'download')">
                         <div class="h-full bg-indigo-500 transition-all duration-500" :style="`width: ${task.progress}%`"></div>
@@ -133,11 +138,11 @@
 
                     <div class="mt-3 flex items-center gap-3 text-xs">
                         <button type="button" x-show="isBusy(task)" @click="cancel(task)"
-                                class="font-medium text-slate-400 hover:text-red-300" x-text="lang === 'pl' ? 'Anuluj' : 'Cancel'">Cancel</button>
+                                class="font-medium text-zinc-400 hover:text-red-300" x-text="lang === 'pl' ? 'Anuluj' : 'Cancel'">Cancel</button>
                         <button type="button" x-show="canRetry(task)" @click="retry(task)"
                                 class="font-medium text-indigo-300 hover:text-indigo-200" x-text="lang === 'pl' ? 'Ponów' : 'Retry'">Retry</button>
                         <button type="button" x-show="!isBusy(task)" @click="dismiss(task)"
-                                class="font-medium text-slate-400 hover:text-slate-200" x-text="lang === 'pl' ? 'Usuń' : 'Dismiss'">Dismiss</button>
+                                class="font-medium text-zinc-400 hover:text-zinc-200" x-text="lang === 'pl' ? 'Usuń' : 'Dismiss'">Dismiss</button>
                         <a x-show="task.status === 'completed'" :href="'#library'" @click="expandLibrary()"
                            class="ml-auto font-medium text-emerald-300 hover:text-emerald-200" x-text="lang === 'pl' ? 'Zobacz w bibliotece' : 'View in library'">View in library</a>
                     </div>
@@ -150,23 +155,23 @@
     <section class="mb-10" aria-labelledby="storage-heading">
         <div class="glass-card rounded-2xl p-4 sm:p-5">
             <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <h2 id="storage-heading" class="flex items-center gap-2 text-sm font-semibold text-slate-200">
+                <h2 id="storage-heading" class="flex items-center gap-2 text-sm font-semibold text-zinc-200">
                     <svg class="h-4 w-4 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg>
                     <span x-text="lang === 'pl' ? 'Pamięć masowa' : 'Storage'">Storage</span>
                 </h2>
-                <span class="text-xs text-slate-400"
+                <span class="text-xs text-zinc-400"
                       x-text="lang === 'pl' ? `${formatBytes(health.disk.used)} użyte z ${formatBytes(health.disk.total)}` : `${formatBytes(health.disk.used)} used of ${formatBytes(health.disk.total)}`"></span>
             </div>
 
-            <div class="h-2 w-full overflow-hidden rounded-full bg-slate-800"
+            <div class="h-2 w-full overflow-hidden rounded-full bg-zinc-800"
                  role="progressbar" :aria-valuenow="health.disk.percent" aria-valuemin="0" aria-valuemax="100"
                  aria-label="Disk usage">
                 <div class="h-full transition-all duration-500" :class="diskBarClass()" :style="`width: ${health.disk.percent}%`"></div>
             </div>
 
             <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <span class="text-slate-300" x-text="lang === 'pl' ? `${formatBytes(health.disk.free)} wolnego` : `${formatBytes(health.disk.free)} free`"></span>
-                <span class="text-slate-400" x-text="lang === 'pl' ? `${library.length} ${library.length === 1 ? 'album' : 'albumów'} · ${formatBytes(libraryTotal())} muzyki` : `${library.length} album${library.length === 1 ? '' : 's'} · ${formatBytes(libraryTotal())} of music`"></span>
+                <span class="text-zinc-300" x-text="lang === 'pl' ? `${formatBytes(health.disk.free)} wolnego` : `${formatBytes(health.disk.free)} free`"></span>
+                <span class="text-zinc-400" x-text="lang === 'pl' ? `${library.length} ${library.length === 1 ? 'album' : 'albumów'} · ${formatBytes(libraryTotal())} muzyki` : `${library.length} album${library.length === 1 ? '' : 's'} · ${formatBytes(libraryTotal())} of music`"></span>
             </div>
         </div>
     </section>
@@ -179,13 +184,13 @@
                 <span x-text="t('labels.title')">Labels</span>
             </h2>
             <button type="button" @click="refreshAllLabels()" :disabled="labelsBusy"
-                    class="text-xs font-medium text-slate-400 underline-offset-2 hover:text-slate-200 hover:underline disabled:opacity-50">
+                    class="text-xs font-medium text-zinc-400 underline-offset-2 hover:text-zinc-200 hover:underline disabled:opacity-50">
                 <span x-text="labelsBusy ? t('labels.refreshing') : t('labels.refresh')">Refresh all</span>
             </button>
         </div>
 
         <form @submit.prevent="addLabel()" class="glass-card mb-4 rounded-2xl p-4">
-            <label for="label-url" class="mb-2 block text-sm font-medium text-slate-300" x-text="t('labels.watch')">Watch a label or artist</label>
+            <label for="label-url" class="mb-2 block text-sm font-medium text-zinc-300" x-text="t('labels.watch')">Watch a label or artist</label>
             <div class="flex flex-col gap-2 sm:flex-row">
                 <input id="label-url" type="text" x-model.trim="labelForm.url" autocomplete="off" spellcheck="false"
                        inputmode="url" placeholder="https://label.bandcamp.com" class="field flex-1">
@@ -198,7 +203,7 @@
                class="mt-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-200" x-text="labelError"></p>
         </form>
 
-        <p x-show="labels.length === 0 && !labelsBusy" x-cloak class="glass-card rounded-2xl p-6 text-center text-sm text-slate-400" x-text="t('labels.empty')">
+        <p x-show="labels.length === 0 && !labelsBusy" x-cloak class="glass-card rounded-2xl p-6 text-center text-sm text-zinc-400" x-text="t('labels.empty')">
             No labels watched yet. Paste a label or artist page above to browse its catalogue.
         </p>
 
@@ -207,33 +212,33 @@
                 <div class="glass-card rounded-2xl p-4">
                     <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
                         <div class="min-w-0">
-                            <p class="flex items-center gap-2 font-semibold text-slate-100">
+                            <p class="flex items-center gap-2 font-semibold text-zinc-100">
                                 <span class="truncate" x-text="label.name"></span>
                                 <span x-show="label.new_count > 0" x-cloak
                                       class="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300"
                                       x-text="`${label.new_count} new`"></span>
                             </p>
-                            <p class="truncate text-xs text-slate-400">
+                            <p class="truncate text-xs text-zinc-400">
                                 <a :href="label.url" target="_blank" rel="noopener noreferrer"
-                                   class="underline-offset-2 hover:text-slate-200 hover:underline" x-text="label.slug"></a>
+                                   class="underline-offset-2 hover:text-zinc-200 hover:underline" x-text="label.slug"></a>
                                 <span x-text="` · ${label.releases.length} releases · checked ${ageLabel(label.last_checked)}`"></span>
                             </p>
                         </div>
 
                         <div class="flex shrink-0 items-center gap-2 text-xs">
-                            <div class="flex items-center rounded-lg border border-slate-800 p-0.5" role="group" aria-label="Release layout">
+                            <div class="flex items-center rounded-lg border border-zinc-800 p-0.5" role="group" aria-label="Release layout">
                                 <button type="button" @click="setLabelView(label.slug, 'grid')"
                                         :aria-pressed="labelViewFor(label.slug) === 'grid' ? 'true' : 'false'"
                                         title="Grid" aria-label="Grid view"
                                         class="rounded-md p-1.5 transition"
-                                        :class="labelViewFor(label.slug) === 'grid' ? 'bg-slate-700 text-slate-100' : 'text-slate-500 hover:text-slate-300'">
+                                        :class="labelViewFor(label.slug) === 'grid' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'">
                                     <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                                 </button>
                                 <button type="button" @click="setLabelView(label.slug, 'list')"
                                         :aria-pressed="labelViewFor(label.slug) === 'list' ? 'true' : 'false'"
                                         title="List" aria-label="List view"
                                         class="rounded-md p-1.5 transition"
-                                        :class="labelViewFor(label.slug) === 'list' ? 'bg-slate-700 text-slate-100' : 'text-slate-500 hover:text-slate-300'">
+                                        :class="labelViewFor(label.slug) === 'list' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'">
                                     <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
                                 </button>
                             </div>
@@ -242,13 +247,13 @@
                                 <span x-text="`Download ${label.new_count} new`"></span>
                             </button>
                             <button type="button" x-show="label.new_count > 0" x-cloak @click="markSeen(label)"
-                                    class="rounded-lg px-2 py-1 text-slate-400 hover:text-slate-200">Mark seen</button>
+                                    class="rounded-lg px-2 py-1 text-zinc-400 hover:text-zinc-200">Mark seen</button>
                             <button type="button" @click="refreshLabel(label.slug)" :disabled="label.refreshing"
-                                    class="rounded-lg px-2 py-1 text-slate-400 hover:text-slate-200 disabled:opacity-50"
+                                    class="rounded-lg px-2 py-1 text-zinc-400 hover:text-zinc-200 disabled:opacity-50"
                                     x-text="label.refreshing ? '…' : 'Refresh'"></button>
                             <button type="button" @click="removeLabel(label)"
                                     :aria-label="`Stop watching ${label.name}`" title="Stop watching"
-                                    class="rounded-lg p-1.5 text-slate-400 hover:bg-red-500/10 hover:text-red-300">
+                                    class="rounded-lg p-1.5 text-zinc-400 hover:bg-red-500/10 hover:text-red-300">
                                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                             </button>
                         </div>
@@ -262,19 +267,19 @@
                         <template x-for="release in visibleReleases(label)" :key="release.id">
                             <div class="group relative">
                                 <a :href="release.url" target="_blank" rel="noopener noreferrer"
-                                   class="relative block overflow-hidden rounded-lg border border-slate-800 bg-slate-900/60">
+                                   class="relative block overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/60">
                                     <template x-if="release.cover">
                                         <img :src="release.cover" alt="" loading="lazy"
                                              class="aspect-square w-full object-cover transition group-hover:opacity-75">
                                     </template>
                                     <template x-if="!release.cover">
-                                        <div class="flex aspect-square w-full items-center justify-center bg-slate-800/60 text-slate-500" aria-hidden="true">
+                                        <div class="flex aspect-square w-full items-center justify-center bg-zinc-800/60 text-zinc-500" aria-hidden="true">
                                             <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
                                         </div>
                                     </template>
-                                    <div class="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/85 to-transparent px-2 pb-1.5 pt-7">
-                                        <p class="truncate text-[11px] font-medium leading-tight text-slate-100" :title="release.title" x-text="release.title"></p>
-                                        <p class="mt-0.5 truncate text-[10px] leading-tight text-slate-400" :title="release.artist" x-text="release.artist || release.type"></p>
+                                    <div class="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-zinc-950 via-zinc-950/85 to-transparent px-2 pb-1.5 pt-7">
+                                        <p class="truncate text-[11px] font-medium leading-tight text-zinc-100" :title="release.title" x-text="release.title"></p>
+                                        <p class="mt-0.5 truncate text-[10px] leading-tight text-zinc-400" :title="release.artist" x-text="release.artist || release.type"></p>
                                     </div>
                                 </a>
 
@@ -303,7 +308,7 @@
                     </div>
 
                     <!-- list -->
-                    <div x-show="labelViewFor(label.slug) === 'list'" x-cloak class="divide-y divide-slate-800/70">
+                    <div x-show="labelViewFor(label.slug) === 'list'" x-cloak class="divide-y divide-zinc-800/70">
                         <template x-for="release in visibleReleases(label)" :key="release.id">
                             <div class="flex items-center gap-2.5 py-1.5">
                                 <a :href="release.url" target="_blank" rel="noopener noreferrer"
@@ -312,13 +317,13 @@
                                         <img :src="release.cover" alt="" loading="lazy" class="h-9 w-9 shrink-0 rounded object-cover">
                                     </template>
                                     <template x-if="!release.cover">
-                                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-slate-800/60 text-slate-500" aria-hidden="true">
+                                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-zinc-800/60 text-zinc-500" aria-hidden="true">
                                             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
                                         </div>
                                     </template>
                                     <div class="min-w-0">
-                                        <p class="truncate text-xs font-medium text-slate-100" :title="release.title" x-text="release.title"></p>
-                                        <p class="truncate text-[11px] text-slate-500" :title="release.artist" x-text="release.artist || release.type"></p>
+                                        <p class="truncate text-xs font-medium text-zinc-100" :title="release.title" x-text="release.title"></p>
+                                        <p class="truncate text-[11px] text-zinc-500" :title="release.artist" x-text="release.artist || release.type"></p>
                                     </div>
                                 </a>
 
@@ -328,7 +333,7 @@
                                 <button type="button" @click="playRelease(release)"
                                         :aria-label="`Preview ${release.title}`"
                                         :title="`Preview ${release.title}`"
-                                        class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-800 text-slate-300 transition hover:bg-indigo-600 hover:text-white">
+                                        class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-zinc-300 transition hover:bg-indigo-600 hover:text-white">
                                     <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
                                 </button>
 
@@ -349,12 +354,12 @@
                     <div x-show="label.releases.length > 16" x-cloak class="mt-3 flex justify-center">
                         <button type="button" x-show="visibleReleases(label).length < label.releases.length"
                                 @click="showMore(label)"
-                                class="rounded-lg border border-slate-800 px-3 py-1.5 text-xs font-medium text-slate-400 hover:border-slate-700 hover:text-slate-200">
+                                class="rounded-lg border border-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-400 hover:border-zinc-700 hover:text-zinc-200">
                             <span x-text="`Show more (${visibleReleases(label).length} of ${label.releases.length})`"></span>
                         </button>
                         <button type="button" x-show="visibleReleases(label).length >= label.releases.length"
                                 @click="collapseLabel(label)"
-                                class="rounded-lg border border-slate-800 px-3 py-1.5 text-xs font-medium text-slate-400 hover:border-slate-700 hover:text-slate-200">
+                                class="rounded-lg border border-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-400 hover:border-zinc-700 hover:text-zinc-200">
                             Show less
                         </button>
                     </div>
@@ -370,18 +375,18 @@
                 <svg class="h-5 w-5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
                 <span x-text="t('library.title')">Library</span>
             </h2>
-            <button type="button" @click="fetchLibrary()" class="text-xs font-medium text-slate-400 underline-offset-2 hover:text-slate-200 hover:underline" x-text="t('library.refresh')">Refresh</button>
+            <button type="button" @click="fetchLibrary()" class="text-xs font-medium text-zinc-400 underline-offset-2 hover:text-zinc-200 hover:underline" x-text="t('library.refresh')">Refresh</button>
         </div>
 
         <p x-show="libraryError" x-cloak role="alert"
            class="mb-3 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200" x-text="libraryError"></p>
 
         <div class="glass-card rounded-2xl p-4 sm:p-6">
-            <p x-show="library.length === 0" x-cloak class="py-6 text-center text-sm text-slate-400" x-text="t('library.empty')">Nothing downloaded yet.</p>
+            <p x-show="library.length === 0" x-cloak class="py-6 text-center text-sm text-zinc-400" x-text="t('library.empty')">Nothing downloaded yet.</p>
 
             <ul class="space-y-3" role="list">
                 <template x-for="album in library" :key="album.folder || '__root__'">
-                    <li class="rounded-xl border border-slate-800 bg-slate-900/60">
+                    <li class="rounded-xl border border-zinc-800 bg-zinc-900/60">
                         <div class="flex items-center gap-2 p-3">
                             <button type="button" @click="album.open = !album.open"
                                     :aria-expanded="album.open ? 'true' : 'false'"
@@ -396,11 +401,11 @@
                                         </div>
                                     </template>
                                     <div class="min-w-0">
-                                        <p class="truncate text-sm font-medium text-slate-100" x-text="album.label"></p>
-                                        <p class="text-xs text-slate-400" x-text="albumSubtitle(album)"></p>
+                                        <p class="truncate text-sm font-medium text-zinc-100" x-text="album.label"></p>
+                                        <p class="text-xs text-zinc-400" x-text="albumSubtitle(album)"></p>
                                     </div>
                                 </div>
-                                <svg class="h-5 w-5 shrink-0 text-slate-400 transition-transform" :class="album.open ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                                <svg class="h-5 w-5 shrink-0 text-zinc-400 transition-transform" :class="album.open ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                             </button>
 
                             <button type="button" @click="playLibraryAlbum(album)"
@@ -423,7 +428,7 @@
                             <template x-if="!isConfirming('album:' + album.path)">
                                 <button type="button" @click="deleteAlbum(album)"
                                         :aria-label="`Delete ${album.label}`" title="Delete this album"
-                                        class="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-red-500/10 hover:text-red-300">
+                                        class="shrink-0 rounded-lg p-2 text-zinc-400 transition hover:bg-red-500/10 hover:text-red-300">
                                     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                                 </button>
                             </template>
@@ -432,19 +437,19 @@
                                     <button type="button" @click="deleteAlbum(album)"
                                             class="rounded-lg bg-red-500/20 px-2 py-1 text-xs font-semibold text-red-200 hover:bg-red-500/30">Delete</button>
                                     <button type="button" @click="cancelConfirm('album:' + album.path)"
-                                            class="rounded-lg px-2 py-1 text-xs text-slate-400 hover:text-slate-200">No</button>
+                                            class="rounded-lg px-2 py-1 text-xs text-zinc-400 hover:text-zinc-200">No</button>
                                 </div>
                             </template>
                         </div>
 
-                        <div x-show="album.open" x-cloak class="space-y-1 border-t border-slate-800 p-2">
+                        <div x-show="album.open" x-cloak class="space-y-1 border-t border-zinc-800 p-2">
                             <template x-for="file in album.files" :key="file.url">
-                                <div class="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-xs hover:bg-slate-800/50">
+                                <div class="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-xs hover:bg-zinc-800/50">
                                     <div class="flex min-w-0 items-center gap-2">
                                         <svg class="h-3.5 w-3.5 shrink-0 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-                                        <span class="truncate text-slate-200" x-text="file.name"></span>
-                                        <span class="shrink-0 text-slate-500" x-text="trackMeta(file)"></span>
-                                        <span class="shrink-0 text-slate-500" x-text="formatBytes(file.size)"></span>
+                                        <span class="truncate text-zinc-200" x-text="file.name"></span>
+                                        <span class="shrink-0 text-zinc-500" x-text="trackMeta(file)"></span>
+                                        <span class="shrink-0 text-zinc-500" x-text="formatBytes(file.size)"></span>
                                     </div>
 
                                     <div class="flex shrink-0 items-center gap-1">
@@ -463,7 +468,7 @@
                                         <template x-if="!isConfirming('file:' + file.path)">
                                             <button type="button" @click="deleteFile(file)"
                                                     :aria-label="`Delete ${file.name}`" title="Delete this file"
-                                                    class="rounded p-1.5 text-slate-400 transition hover:bg-red-500/10 hover:text-red-300">
+                                                    class="rounded p-1.5 text-zinc-400 transition hover:bg-red-500/10 hover:text-red-300">
                                                 <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                                             </button>
                                         </template>
@@ -472,7 +477,7 @@
                                                 <button type="button" @click="deleteFile(file)"
                                                         class="rounded bg-red-500/20 px-2 py-1 font-semibold text-red-200 hover:bg-red-500/30">Delete</button>
                                                 <button type="button" @click="cancelConfirm('file:' + file.path)"
-                                                        class="rounded px-1.5 py-1 text-slate-400 hover:text-slate-200">No</button>
+                                                        class="rounded px-1.5 py-1 text-zinc-400 hover:text-zinc-200">No</button>
                                             </div>
                                         </template>
                                     </div>
@@ -485,25 +490,25 @@
         </div>
     </section>
 
-    <footer class="mt-10 border-t border-slate-800 pt-6 text-center text-xs text-slate-500">
+    <footer class="mt-10 border-t border-zinc-800 pt-6 text-center text-xs text-zinc-500">
         <span x-text="`v${health.version || '?'} · Serving ${health.download_root || '…'} · ${health.max_concurrent || '?'} concurrent downloads`"></span>
         <span x-show="!health.auth" x-cloak class="ml-1 text-amber-400">· no password set</span>
     </footer>
 
     <!-- Player -->
     <div x-show="player.open" x-cloak
-         class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-700 bg-slate-950/95 shadow-2xl backdrop-blur"
+         class="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-700 bg-zinc-950/95 shadow-2xl backdrop-blur"
          role="region" aria-label="Player">
         <div class="mx-auto max-w-4xl px-3 py-3">
             <div x-show="player.listOpen" x-cloak
-                 class="mb-3 max-h-56 overflow-y-auto rounded-xl border border-slate-800 bg-slate-900/60">
+                 class="mb-3 max-h-56 overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-900/60">
                 <template x-for="(track, position) in player.tracks" :key="position">
                     <button type="button" @click="playTrackAt(position)"
-                            class="flex w-full items-center gap-2 border-b border-slate-800/60 px-3 py-2 text-left text-xs last:border-0"
-                            :class="position === player.index ? 'bg-emerald-500/10 text-emerald-300' : 'text-slate-300 hover:bg-slate-800/50'">
-                        <span class="w-4 shrink-0 text-[10px] tabular-nums text-slate-500" x-text="position + 1"></span>
+                            class="flex w-full items-center gap-2 border-b border-zinc-800/60 px-3 py-2 text-left text-xs last:border-0"
+                            :class="position === player.index ? 'bg-emerald-500/10 text-emerald-300' : 'text-zinc-300 hover:bg-zinc-800/50'">
+                        <span class="w-4 shrink-0 text-[10px] tabular-nums text-zinc-500" x-text="position + 1"></span>
                         <span class="min-w-0 flex-1 truncate" x-text="track.title"></span>
-                        <span class="shrink-0 text-[10px] tabular-nums text-slate-500" x-text="formatDuration(track.duration)"></span>
+                        <span class="shrink-0 text-[10px] tabular-nums text-zinc-500" x-text="formatDuration(track.duration)"></span>
                     </button>
                 </template>
             </div>
@@ -519,9 +524,9 @@
                 </template>
 
                 <div class="min-w-0 flex-1">
-                    <p class="truncate text-sm font-medium text-slate-100" :title="playerTitle()" x-text="playerTitle()"></p>
+                    <p class="truncate text-sm font-medium text-zinc-100" :title="playerTitle()" x-text="playerTitle()"></p>
                     <p class="truncate text-xs"
-                       :class="player.error ? 'text-red-300' : 'text-slate-400'"
+                       :class="player.error ? 'text-red-300' : 'text-zinc-400'"
                        x-text="player.error || playerSubtitle() || (player.loading ? 'Resolving preview…' : '')"></p>
                 </div>
 
@@ -564,11 +569,11 @@
             </div>
 
             <div class="mt-2 flex items-center gap-2">
-                <span class="w-10 shrink-0 text-right text-[10px] tabular-nums text-slate-500" x-text="formatDuration(player.current)"></span>
+                <span class="w-10 shrink-0 text-right text-[10px] tabular-nums text-zinc-500" x-text="formatDuration(player.current)"></span>
                 <input type="range" min="0" step="1" :max="player.duration || 0" :value="player.current"
                        @input="seekTo($event)" aria-label="Seek" :disabled="!player.duration"
                        class="player-seek h-1.5 flex-1">
-                <span class="w-10 shrink-0 text-[10px] tabular-nums text-slate-500" x-text="formatDuration(player.duration)"></span>
+                <span class="w-10 shrink-0 text-[10px] tabular-nums text-zinc-500" x-text="formatDuration(player.duration)"></span>
             </div>
         </div>
     </div>
@@ -650,7 +655,17 @@
             labelLimit: {},
             autoRefreshedLabels: false,
             newReleasesTicker: [],
-            theme: localStorage.getItem('theme') || 'theme-ocean',
+            themeOptions: [
+                { id: 'theme-violet', name: 'Violet', swatch: 'linear-gradient(135deg, #7c3aed, #a78bfa)' },
+                { id: 'theme-teal', name: 'Teal', swatch: 'linear-gradient(135deg, #0f766e, #2dd4bf)' },
+                { id: 'theme-amber', name: 'Amber', swatch: 'linear-gradient(135deg, #b45309, #fbbf24)' },
+                { id: 'theme-rose', name: 'Rose', swatch: 'linear-gradient(135deg, #be123c, #fb7185)' }
+            ],
+            theme: (() => {
+                const saved = localStorage.getItem('theme');
+                const valid = ['theme-violet', 'theme-teal', 'theme-amber', 'theme-rose'];
+                return valid.includes(saved) ? saved : 'theme-violet';
+            })(),
             setTheme(t) { this.theme = t; localStorage.setItem('theme', t); },
             tasks: [],
             library: [],
@@ -1043,13 +1058,13 @@
 
             statusClass(status) {
                 return {
-                    'bg-slate-500/15 text-slate-300': status === 'queued',
+                    'bg-zinc-500/15 text-zinc-300': status === 'queued',
                     'bg-indigo-500/15 text-indigo-300': status === 'downloading',
                     'bg-amber-500/15 text-amber-300': status === 'processing',
                     'bg-emerald-500/15 text-emerald-300': status === 'completed',
                     'bg-red-500/15 text-red-300': status === 'failed',
-                    'bg-slate-600/20 text-slate-400': status === 'cancelled'
-                }[status] || 'bg-slate-500/15 text-slate-300';
+                    'bg-zinc-600/20 text-zinc-400': status === 'cancelled'
+                }[status] || 'bg-zinc-500/15 text-zinc-300';
             },
 
             formatBytes(bytes) {
