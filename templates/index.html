@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>bandcamp downloader</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18V5l12-2v13'/%3E%3Ccircle cx='6' cy='18' r='3'/%3E%3Ccircle cx='18' cy='16' r='3'/%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%237c3aed'/%3E%3Cg transform='translate(4 4)' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18V5l12-2v13'/%3E%3Ccircle cx='6' cy='18' r='3'/%3E%3Ccircle cx='18' cy='16' r='3'/%3E%3C/g%3E%3C/svg%3E">
     <link rel="stylesheet" href="/static/app.css">
     <script defer src="/static/vendor/alpine.min.js"></script>
 </head>
@@ -656,17 +656,37 @@
             autoRefreshedLabels: false,
             newReleasesTicker: [],
             themeOptions: [
-                { id: 'theme-violet', name: 'Violet', swatch: 'linear-gradient(135deg, #7c3aed, #a78bfa)' },
-                { id: 'theme-teal', name: 'Teal', swatch: 'linear-gradient(135deg, #0f766e, #2dd4bf)' },
-                { id: 'theme-amber', name: 'Amber', swatch: 'linear-gradient(135deg, #b45309, #fbbf24)' },
-                { id: 'theme-rose', name: 'Rose', swatch: 'linear-gradient(135deg, #be123c, #fb7185)' }
+                { id: 'theme-violet', name: 'Violet', color: '#7c3aed', swatch: 'linear-gradient(135deg, #7c3aed, #a78bfa)' },
+                { id: 'theme-teal', name: 'Teal', color: '#0f766e', swatch: 'linear-gradient(135deg, #0f766e, #2dd4bf)' },
+                { id: 'theme-amber', name: 'Amber', color: '#b45309', swatch: 'linear-gradient(135deg, #b45309, #fbbf24)' },
+                { id: 'theme-rose', name: 'Rose', color: '#be123c', swatch: 'linear-gradient(135deg, #be123c, #fb7185)' }
             ],
             theme: (() => {
                 const saved = localStorage.getItem('theme');
                 const valid = ['theme-violet', 'theme-teal', 'theme-amber', 'theme-rose'];
                 return valid.includes(saved) ? saved : 'theme-violet';
             })(),
-            setTheme(t) { this.theme = t; localStorage.setItem('theme', t); },
+            setTheme(t) {
+                this.theme = t;
+                localStorage.setItem('theme', t);
+                this.updateFavicon();
+            },
+            updateFavicon() {
+                const option = this.themeOptions.find(o => o.id === this.theme) || this.themeOptions[0];
+                const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">`
+                    + `<rect width="32" height="32" rx="8" fill="${option.color}"/>`
+                    + `<g transform="translate(4 4)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">`
+                    + `<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>`
+                    + `</g></svg>`;
+                let link = document.querySelector('link[rel="icon"]');
+                if (!link) {
+                    link = document.createElement('link');
+                    link.rel = 'icon';
+                    document.head.appendChild(link);
+                }
+                link.type = 'image/svg+xml';
+                link.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
+            },
             tasks: [],
             library: [],
             health: { online: false, version: '', download_root: '', max_concurrent: null, auth: false, disk: { total: 0, used: 0, free: 0, percent: 0 } },
@@ -690,6 +710,7 @@
             },
 
             init() {
+                this.updateFavicon();
                 this.refreshAll();
                 this.timer = setInterval(() => this.refreshAll(), 3000);
                 document.addEventListener('visibilitychange', () => {
